@@ -23,7 +23,7 @@ export default function PosterSheet({ id, title, open, onClose }: { id: string; 
   async function share() {
     try {
       const blob = await (await fetch(src)).blob();
-      await navigator.share({ files: [new File([blob], `${SITE.mcpPrefix}-${id}.png`, { type: "image/png" })], title });
+      await navigator.share({ files: [new File([blob], `${SITE.slug}-${id}.png`, { type: "image/png" })], title });
     } catch {
       // cancelled or unsupported: saving stays available
     }
@@ -50,7 +50,7 @@ export default function PosterSheet({ id, title, open, onClose }: { id: string; 
         <div className="mt-3 flex w-full max-w-[360px] gap-2">
           <a
             href={src}
-            download={`${SITE.mcpPrefix}-${id}.png`}
+            download={`${SITE.slug}-${id}.png`}
             className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-accent text-[14px] font-medium text-accent-contrast transition-colors hover:bg-accent-ink lg:h-10 sm:text-[13.5px]"
           >
             <IconDownload size={15} /> 保存图片

@@ -11,6 +11,20 @@ import type { Founder } from "@aihot/contracts/site-config";
  */
 export const EDITION_TIMES = { daily: "08:00", weekly: "10:00", monthly: "10:30" };
 
+/**
+ * 每日采集什么时候跑（北京时间 HH:mm）。间隔是整天（1440 分钟、4320 分钟……）的信源按这个时刻对齐，
+ * 而不是“上次抓完 + 24 小时”——后者每天都被抓取耗时往后推几分钟，几周就漂到中午了。
+ * 公众号、RSS、监管栏目都读这个值；抓取失败只记录，等下一次对齐的时刻再抓。
+ */
+export const COLLECT_TIMES = { daily: "03:00" };
+
+/**
+ * 模型分析每天什么时候开始（北京时间 HH:mm）：此刻之前入库的文章排到这个时刻再分析，
+ * 一次批量跑完，不在采集当口零散调用；之后进来的（含失败重试）照常立即处理。
+ * 排在采集和出刊之间，留够一轮分析的余量。
+ */
+export const ANALYSIS_TIME = "05:00";
+
 /** “每天 08:00”“每周一 10:00”“每月 1 日 10:30”：写进句子里的出刊时间。 */
 export const EDITION_WHEN = {
   daily: `每天 ${EDITION_TIMES.daily}`,
@@ -20,30 +34,20 @@ export const EDITION_WHEN = {
 
 export const SITE = {
   /** 站名：导航、页面标题、分享图、RSS、MCP、后台都用它。 */
-  name: "MyHOT",
+  name: "保险热点",
   /**
-   * 行业词：拼进默认说法里，比如“AI 日报”“AI 动态”。
+   * 行业词：拼进默认说法里，比如“保险日报”“保险动态”。
    * 改成“法律”“HR”“黄金”之类，页面上就会变成“法律日报”“法律动态”。
    */
-  subject: "AI",
+  subject: "保险",
   /** 首页的完整标题（浏览器标签、搜索结果）。 */
-  homeTitle: "MyHOT — AI 行业动态 · 每日精选与日报",
-  /** 主题目录页（/topics）的标题。 */
-  topicsTitle: "AI 主题：公司与模型、技术方向、内容形态的最新动态",
-  /** 反馈表单输入框里的示例。 */
-  feedbackExample: "例如：我在搜索某个关键词时遇到……我原本想……",
-  /** 反馈页标题下面的一句话。 */
-  feedbackLead: "发现 bug、想要的功能、看不顺眼的地方，都可以告诉我们。",
-  /** 反馈表单邮箱框里的提示。 */
-  feedbackEmailHint: "留下邮箱，我们可以回信联系你",
+  homeTitle: "保险热点 — 保险行业动态 · 每日精选与日报",
   /** 一句话介绍：搜索引擎、分享卡片、RSS、llms.txt 会用。 */
-  description: `从一批 AI 信源里挑出值得看的动态，把同一件事的多篇报道归到一起，${EDITION_WHEN.daily} 出一份日报。`,
-  /** llms.txt 里一句话介绍下面的一段详细介绍（选填）。 */
-  llmsIntro: null as string | null,
+  description: `从一批保险信源里挑出值得看的动态，把同一件事的多篇报道归到一起，${EDITION_WHEN.daily} 出一份日报。`,
   /** 一行小字：分享图、海报下方。 */
-  tagline: "值得关注的 AI 动态",
+  tagline: "值得关注的保险动态",
   /** 搜索引擎读到的关键词（首页结构化数据）。 */
-  keywords: ["AI 资讯", "AI 新闻", "AI 日报", "AI 行业动态"] as string[],
+  keywords: ["保险资讯", "保险新闻", "保险日报", "保险行业动态", "监管政策"] as string[],
   /** 网站开始收录的年份（结构化数据的时间范围，选填）。 */
   since: null as string | null,
   /** 界面语言（HTML lang、og:locale）。 */
@@ -53,19 +57,9 @@ export const SITE = {
   /** 标准图标（favicon.ico、icon.png、icon-192.png、apple-icon.png、logo.svg）以外也放在网站根目录的图标，site/brand/ 里的文件名（选填）；manifest.webmanifest 或外站引用了它们时用。 */
   rootIcons: [] as string[],
   /**
-   * MCP 工具名的前缀（小写字母、数字、下划线），工具会叫 myhot_get_latest、myhot_search……
-   * 已经有人接入后就不要再改。
+   * 站点的 ASCII 标识（小写字母、数字、连字符）：导出 Markdown、分享海报的文件名前缀用。
    */
-  mcpPrefix: "myhot",
-  /**
-   * 公开接口（MCP、OpenAPI、llms.txt）的版本号，只升不降。
-   * 改了接口里已有的字段或含义时升主版本，并在部署说明里写清。
-   */
-  interfaceVersion: "4.0.0",
-  /** 对外联系邮箱（选填）：llms.txt 和给 Agent 的使用说明里会写。 */
-  contactEmail: null as string | null,
-  /** 关于页底部的一行小字（选填）。 */
-  footerNote: "由 AIHOT 开源框架驱动",
+  slug: "baoxianhot",
   /** 中国大陆网站的 ICP 备案号（选填），填了就显示在侧栏底部和“我的”页底部，并链接到工信部备案系统。 */
   icp: null as string | null,
   /** 中国大陆网站的公安备案信息（选填），填了显示在侧栏底部和“我的”页底部。 */
@@ -74,40 +68,16 @@ export const SITE = {
   github: null as string | null,
   /** 结构化数据里的网站运营者（搜索引擎用）。 */
   organization: {
-    name: "MyHOT",
+    name: "保险热点",
     /** 创始人（选填）。 */
     founder: null as Founder | null,
   },
   /** 抓取信源时报上的名字和版本（User-Agent 里用），不要冒用别的站。 */
-  crawlerName: "MyHOTBot/1.0",
+  crawlerName: "BaoxianHotBot/1.0",
 } as const;
 
-/** 使用规则和隐私说明两页（正文在 pages/ 里）。 */
+/** 内容的展示规则。 */
 export const POLICY = {
-  terms: {
-    /** 页面名：导航、页脚、页面标题都用它。 */
-    name: "使用规则",
-    description: "本站网页、RSS、公开 API 与 MCP 的使用规则。",
-    /** llms.txt 里对这一页的一句说明（选填）。 */
-    covers: null as string | null,
-    /** Agent 接入页的 RSS、API 两栏各自提醒的使用规则（选填）。 */
-    notes: null as null | { rss: string; api: string },
-    /**
-     * 讲清哪些用途要先取得授权的话（选填）：llms 接在 llms.txt“使用说明”的版权说明后面，
-     * agent 写在给 Agent 的使用说明“使用规则”一节的开头。
-     */
-    license: null as null | { llms: string; agent: string },
-    /**
-     * 公开 API、RSS 和 OpenAPI 文件声明使用规则的响应头（选填）：原样附上，再加一个指向这一页的
-     * Link 头（rel="terms-of-service"）；浏览器里的调用方也读得到它们。
-     */
-    headers: null as null | Record<string, string>,
-  },
-  privacy: {
-    description: "本站如何处理浏览器本地数据、反馈资料与访问日志。",
-    /** llms.txt 里对这一页的一句说明（选填）。 */
-    covers: null as string | null,
-  },
   /**
    * X 帖子本身的文字和图片算不算全文：算的话，只在这篇允许站内全文时显示（信源允许全文、正文也取到了）；
    * 不算的话总是显示，和标题、摘要一样。
@@ -118,10 +88,10 @@ export const POLICY = {
 /** 导航（电脑侧栏、手机底栏、“我的”页）。 */
 export const NAV = {
   /**
-   * 不放进导航的引擎入口，目前只支持热点榜（"/hot"）和主题（"/topics"）。页面照样能打开；原来回到它的返回按钮和链接改回精选，
+   * 不放进导航的引擎入口，目前只支持热点榜（"/hot"）。页面照样能打开；原来回到它的返回按钮和链接改回精选，
    * 写 "/hot" 时首页也不放当前热点。
    */
-  hidden: [] as Array<"/hot" | "/topics">,
+  hidden: [] as Array<"/hot">,
 };
 
 /** 条目卡片和详情页上的几处说法和显示。 */
@@ -147,13 +117,13 @@ export const ABOUT = {
   /** 页面描述（搜索结果、分享卡片）。 */
   description: `关于 ${SITE.name}：${SITE.description}`,
   /** 大标题：第一行正常颜色，第二行强调色。 */
-  headline: ["AI 圈每天都有新动静，", "值得看的，只有几条。"] as [string, string],
+  headline: ["保险业每天都有新动静，", "值得看的，只有几条。"] as [string, string],
   /** 标题下面的一段话。{sources} 会换成实时的信源数（两边自动加空格，所以 {sources} 两边不写空格）；统计没取到时换成 sourcesFallback。 */
   lead: `${SITE.name} 替你盯着{sources}个信源：抓取、归并、打分、精选，${EDITION_WHEN.daily} 出一份日报。免费，不用注册。`,
   sourcesFallback: "十几",
   /** 信源河动画下面的四个环节。 */
   steps: {
-    collect: "官方博客、媒体和个人的订阅源都在看；更新越勤的源看得越勤，最快 15 分钟看一次。",
+    collect: "监管总局、行业协会和行业媒体都在看；更新越勤的源看得越勤，最快 15 分钟看一次。",
     store: "抓到的都存下来，同一件事的报道归到一起，热点榜就是从这里算出来的。",
     select: `模型先看是不是这个行业的事、有没有实际信息，再写中文标题、摘要和${ITEM_COPY.reasonLabel}；营销稿和重复转发进不来。`,
     publish: `${EDITION_WHEN.daily} 出日报，${EDITION_WHEN.weekly} 出周报，${EDITION_WHEN.monthly} 出月报。`,
@@ -168,28 +138,22 @@ export const ABOUT = {
     avatarSourceId?: string | null;
     greeting: string[];
     wechat?: ContactCard;
-    feishu?: ContactCard;
   },
-  /** 页面底部的版权与下架说明，中间接“反馈页”的链接。 */
-  copyright: [`${SITE.name} 是聚合摘要和阅读索引，原文版权归各来源所有。如果你是来源方，希望更正、下架或调整展示方式，可以通过`, "联系我们。"] as [string, string],
+  /**
+   * 页面底部的开源致谢（选填），null 就不显示：说明本站是拿哪个开源项目做的。
+   * {project} 换成指向代码仓库的链接，其余文字照原样显示。
+   */
+  builtOn: { text: "本站基于开源项目 {project} 构建。", project: "AIHOT", url: "https://github.com/KKKKhazix/AIHOT" } as
+    | { text: string; project: string; url: string }
+    | null,
   /** 页面底部“使用规则”链接的锚点 id（选填）：外部文档写死过这个锚点就填上，以后不要改。 */
   termsAnchor: null as string | null,
 } as const;
 
 /** 后台页面上给管理员的提示（选填）。 */
 export const ADMIN = {
-  /** “反馈”页标题下的一行。 */
-  feedbackNote: null as string | null,
-  /** 确认框里补的一句本站规定：封禁反馈来源时。 */
-  banNote: null as string | null,
   /** 确认框里补的一句本站规定：调整付费服务的请求上限时。 */
   budgetNote: null as string | null,
-};
-
-/** Agent 接入页的示例。 */
-export const AGENT = {
-  /** MCP 工具表里“搜索”一行：能搜什么、可以怎么问。 */
-  search: { scope: "按公司、产品、人物或话题搜最近 7 天", ask: "这家公司最近发了什么？" },
 };
 
 /** 日报、周报、月报版面上的说法。 */
@@ -219,7 +183,7 @@ export const REPORTS = {
 
 /** 运维告警（只发给站长）里随部署而变的几处说法。 */
 export const ALERTS = {
-  /** 多少分钟没有收录新文章就告警“网站停止收录新内容”（最多一天）；环境变量 ALERT_QUIET_MINUTES 优先。 */
+  /** 多少分钟没有收录新文章就告警“网站停止收录新内容”；环境变量 ALERT_QUIET_MINUTES 优先。比最慢信源的抓取间隔还短时按“间隔加一小时”算，每天抓一次的站不会因此误报。 */
   quietMinutes: 360,
   /** 同一条告警里，“没有”后面补一句平时的收录量；null 就不写。 */
   usualFlow: null as string | null,
@@ -251,19 +215,6 @@ export const CARDS: Record<string, { kicker: string; title: string; subtitle: st
   weekly: { kicker: withSubject("周报"), title: `一周${REPORTS.entry.noun}，一次看清`, subtitle: "本周的主线、重要发布与值得回看的讨论。" },
   monthly: { kicker: withSubject("月报"), title: "一个月的变化", subtitle: "月度主线与关键事件回顾。" },
   about: { kicker: "关于", title: `关于 ${SITE.name}`, subtitle: SITE.description },
-  terms: { kicker: "使用规则", title: `${SITE.name} 使用规则`, subtitle: "网页、API、RSS 与 MCP 的使用范围。" },
-  privacy: { kicker: "隐私说明", title: `${SITE.name} 隐私说明`, subtitle: "访问日志、浏览器本地数据与反馈资料的处理方式。" },
-  changelog: { kicker: "更新日志", title: `${SITE.name} 更新日志`, subtitle: "功能更新、优化、公告与下线记录。" },
-  feedback: { kicker: "反馈", title: "告诉我们哪里可以更好", subtitle: "内容、功能、接入，或来源方的更正与下架请求。" },
-  agent: { kicker: "Agent 接入", title: `把 ${SITE.name} 接进你的 Agent`, subtitle: "MCP、RSS、API 三种方式，匿名只读，无需 API Key。" },
-};
-
-/** 公开接口的访问约定里随部署而变的几处：给 Agent 的使用说明、llms.txt 会写。 */
-export const ACCESS = {
-  /** 同一 IP 每分钟大约能请求多少次，超过会收到 429 并带 Retry-After（选填，由部署的反向代理限流）；null 表示不限流，说明里不提。 */
-  ratePerMinute: null as number | null,
-  /** 请写程序同步数据的人报上的 User-Agent（选填），写在 JSON 接口的说明后面。 */
-  userAgent: null as string | null,
 };
 
 /** 这个部署自己的几处安排（选填）。 */
@@ -295,20 +246,12 @@ export const DEPLOYMENT = {
   selectionGold: null as null | { file: string; sample: number; split: string; sweep: [number, number] },
 };
 
-/** RSS 订阅源的说明里随站点而变的说法。 */
-export const FEED_COPY = {
-  /** “全部动态”源的说明里，除了未审内容、低相关条目和已合并重复条目，还写明不含的内容（选填）。 */
-  allLeavesOut: [] as string[],
-};
-
 /**
- * 公开接口（API、RSS、MCP）里和网页不同的类别（选填）。上线后不要改：接口参数和订阅地址里有类别的 key。
- * merge：并进另一类发布的类别，key 是行业包里的类别，值是它并进的类别（公开接口比网页少一类时用）；
- * feedLabels：分类 RSS 标题里的名字，替换行业包里的 feedLabel（并进了别的类别时，名字常常也要跟着改）。
+ * 同步账本里和网页不同的类别（选填）。上线后不要改：账本里的记录按它归类。
+ * merge：并进另一类发布的类别，key 是行业包里的类别，值是它并进的类别（账本比网页少一类时用）。
  */
 export const PUBLIC_CATEGORIES = {
   merge: {},
-  feedLabels: {},
 } as const;
 
 /** “AI 日报”这类说法：行业词和名词之间，英文词加空格，中文词不加。 */

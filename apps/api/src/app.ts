@@ -10,12 +10,8 @@ import { registerOg } from "./routes/og.ts";
 import { registerAdminAuth } from "./routes/admin-auth.ts";
 import { registerAdmin } from "./routes/admin.ts";
 import { registerIngest } from "./routes/ingest.ts";
-import { registerV1, registerV1Fallbacks } from "./routes/v1.ts";
-import { registerAgent } from "./routes/agent.ts";
 import { registerMedia } from "./routes/media.ts";
-import { registerFeeds } from "./routes/feeds.ts";
 import { registerStatic } from "./routes/static.ts";
-import { registerMcp } from "./routes/mcp.ts";
 import { sendProblem } from "./http/respond.ts";
 
 /** Quiet ordinary access logs, while keeping errors that happen after the route has returned. */
@@ -60,7 +56,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     const path = (req.raw.url ?? "").split("?")[0] ?? "/";
     // The reverse proxy logs every request; the process only notes the slow and the failed.
     const ms = Math.round(reply.elapsedTime);
-    if (!logs.failures.has(req.raw) && (reply.statusCode >= 500 || (ms >= 1000 && path !== "/api/mcp" && !path.startsWith("/api/img-proxy")))) {
+    if (!logs.failures.has(req.raw) && (reply.statusCode >= 500 || (ms >= 1000 && !path.startsWith("/api/img-proxy")))) {
       req.log.warn({ method: req.method, path, status: reply.statusCode, ms }, "request");
     }
     for (const m of serverModules()) m.on?.requestAnswered?.(req, reply, path);
@@ -94,14 +90,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerAdminAuth(app);
   registerAdmin(app);
   registerIngest(app);
-  registerV1(app);
-  registerAgent(app);
   registerMedia(app);
-  registerFeeds(app);
   registerStatic(app);
-  registerMcp(app);
   for (const m of serverModules()) m.http?.(app);
-  registerV1Fallbacks(app);
 
   app.setNotFoundHandler((req, reply) => {
     if ((req.raw.url ?? "").startsWith("/api/")) {

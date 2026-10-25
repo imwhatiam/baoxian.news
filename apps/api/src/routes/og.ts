@@ -1,4 +1,4 @@
-// Share images (1200×630 PNG) for pages, items, reports, topics and events. Only public content
+// Share images (1200×630 PNG) for pages, items, reports and events. Only public content
 // gets a card; anything else is a real 404.
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { reportDateLabel } from "@aihot/contracts/site";
@@ -6,17 +6,15 @@ import { CATEGORY_LABELS } from "@aihot/contracts/taxonomy";
 import { beijingDate } from "@aihot/contracts/time";
 import { loadItemOgCard, loadItemShare } from "@aihot/backend/publication/og";
 import { loadReport, type ReportKind } from "@aihot/backend/publication/reports";
-import { findTopic, TOPIC_GROUPS, TOPICS } from "@aihot/backend/publication/topics";
 import { loadStoryDetail, resolveStory } from "@aihot/backend/publication/stories";
 import { ogEtag, renderOg, type OgCard } from "@aihot/backend/media/og";
 import { posterEtag, renderPoster, type Poster } from "@aihot/backend/media/poster";
-import { CARDS, ITEM_COPY, REPORTS, subjectAfter, withSubject } from "@aihot/site";
+import { CARDS, ITEM_COPY, REPORTS, withSubject } from "@aihot/site";
 import { config } from "@aihot/backend/config";
 
-/** The pages' share cards: the site's texts, and the topic count of the topic list. */
+/** The pages' share cards: the site's texts. */
 const PAGES: Record<string, OgCard> = {
   ...CARDS,
-  topics: { kicker: "主题", title: `${TOPICS.length} ${subjectAfter("个长期追踪的", "方向")}`, subtitle: `${TOPIC_GROUPS.map((g) => g.name).join("、")}。` },
 };
 
 /**
@@ -92,12 +90,6 @@ export function registerOg(app: FastifyInstance) {
     }, 3600, CONTENT_IMAGE_CACHE);
   });
 
-  app.get("/og/topics/:file", async (req, reply) => {
-    const file = (req.params as { file: string }).file;
-    const t = file.endsWith(".png") ? findTopic(file.slice(0, -4)) : null;
-    if (!t) return notFound(reply);
-    return send(req, reply, { kicker: `主题 · ${TOPIC_GROUPS.find((g) => g.key === t.group)?.name ?? ""}`, title: `${t.name} 最新动态`, subtitle: t.definition }, 86400);
-  });
 
   app.get("/og/stories/:file", async (req, reply) => {
     const file = (req.params as { file: string }).file;

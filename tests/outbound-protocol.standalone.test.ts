@@ -113,7 +113,10 @@ for (const route of ["direct", "proxy", "secure-proxy", "dns"] as const) {
 
 // A site whose certificate has expired, or that a proxy cannot verify, stays unread until it is fixed:
 // reading it unverified would let anyone on the path rewrite what gets published.
-test("no code turns certificate verification off", async () => {
+// `git grep` needs git, which a database image need not carry: this rule reads the repository's own
+// text, so it runs in a checkout (as CI does).
+const NO_GIT = await exec("git", ["--version"]).then(() => false, () => "git is not installed here: run npm run test:standalone in a checkout");
+test("no code turns certificate verification off", { skip: NO_GIT }, async () => {
   const { stdout } = await exec("git", ["grep", "-nE", "rejectUnauthorized[[:space:]]*:[[:space:]]*false|NODE_TLS_REJECT_UNAUTHORIZED", "--", ".", ":!tests/outbound-protocol.standalone.test.ts"],
     { cwd: new URL("../", import.meta.url) }).catch((error: { code?: number }) => (error.code === 1 ? { stdout: "" } : Promise.reject(error)));
   assert.equal(stdout, "", "keep certificate verification on; a source that fails it waits for its site to be fixed");

@@ -5,6 +5,8 @@
 // an article wait and retry with backoff; only a permanent refusal or exhausted retries end in
 // "failed", which the admin re-queues in bulk.
 import type { PgBoss } from "pg-boss";
+import { beijingAt, beijingDate } from "@aihot/contracts/time";
+import { ANALYSIS_TIME } from "@aihot/site";
 import { sql, type Db } from "../db.ts";
 import { extractArticleBody, pageFetchable } from "../content/extract.ts";
 import { analyzeArticle } from "../editorial/analyze.ts";
@@ -46,8 +48,10 @@ async function route(articleId: string, db: Db): Promise<Route | null> {
   const historical = isHistorical(row);
   const signal = row.participation_mode !== "editorial";
   const pending = row.body_status === "pending";
-  const wantsBody = row.config.fetchPublicContent === true || !!row.config.detail || row.kind === "web_list";
-  const needsPage = !signal && pageFetchable(row.url, row.kind) && (wantsBody || row.bare);
+  // noBody: the article page carries no readable text (an API-fed or fully client-rendered site);
+  // reading it would store boilerplate, so the analysis works from the title and digest instead.
+  const wantsBody = row.config.noBody !== true && (row.config.fetchPublicContent === true || !!row.config.detail || row.kind === "web_list");
+  const needsPage = row.config.noBody !== true && !signal && pageFetchable(row.url, row.kind) && (wantsBody || row.bare);
   const needsXArticle = row.kind === "x_search" && (!signal || (row.participation_mode === "hot_signal" && !historical));
   return { step: pending && (needsPage || needsXArticle) ? "extract" : "analyze", signal, historical };
 }
@@ -62,6 +66,17 @@ const PRIORITY = { live: 0, liveSignal: -1, history: -2 } as const;
 /** A grouping job's place in that order, for repairs and regroups as for the first queueing. */
 export function groupingPriority(a: { signal: boolean; historical: boolean }): number {
   return a.historical ? PRIORITY.history : a.signal ? PRIORITY.liveSignal : PRIORITY.live;
+}
+
+/**
+ * When today's analysis starts: the site's ANALYSIS_TIME while it has not passed, null once it has.
+ * Collection runs hours before that, so everything it brings in waits in the queue instead of paying
+ * for a scattered call each; after the instant (and every retry) the work goes out at once.
+ */
+export function analysisStartAfter(now: Date): Date | null {
+  const [hour, minute] = ANALYSIS_TIME.split(":").map(Number) as [number, number];
+  const today = beijingAt(beijingDate(now), "00:00").getTime() + (hour * 60 + minute) * 60_000;
+  return today > now.getTime() ? new Date(today) : null;
 }
 
 /**
@@ -85,8 +100,10 @@ export async function queueProcessing(articleId: string, opts: { step?: Step; at
     return enqueue(QUEUES.group, { articleId, signalOnly: true }, { singletonKey: articleId, priority: groupingPriority(r) }, opts.db);
   }
   const tagged = !!attemptTag;
+  const startAfter = analysisStartAfter(new Date());
   return enqueue(QUEUES.analyze, tagged ? { articleId, attemptTag } : { articleId },
-    { singletonKey: tagged ? `manual:analyze:${articleId}:${attemptTag}` : articleId, priority: r.historical ? PRIORITY.history : PRIORITY.live }, opts.db);
+    { singletonKey: tagged ? `manual:analyze:${articleId}:${attemptTag}` : articleId, priority: r.historical ? PRIORITY.history : PRIORITY.live,
+      ...(startAfter ? { startAfter } : {}) }, opts.db);
 }
 
 /**
@@ -151,6 +168,8 @@ async function processRevision(articleId: string, row: NonNullable<Awaited<Retur
     if (result.stale) return { state: "stale" }; // the newer revision has its own job
     await publishArticle(articleId);
     if (needsGrouping({ participationMode: row.participation_mode, historical: row.historical, relevance: result.output.relevance })) await enqueue(QUEUES.group, { articleId }, { singletonKey: articleId, priority: groupingPriority({ signal: false, historical: row.historical }) });
+    // 二次热度探查：只有过了相关性判断的报道才值得去 Bing 再搜一次（一次约 7 秒）。
+    if (result.output.relevance === "pass") await enqueue(QUEUES.heatProbe, { articleId }, { singletonKey: articleId });
     await sql`UPDATE articles SET processing_attempts = 0, processing_retry_at = NULL, processing_queued_at = NULL
               WHERE id = ${articleId} AND revision = ${row.revision}`;
     return { state: result.output.relevance };

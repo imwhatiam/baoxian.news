@@ -1,45 +1,42 @@
 
-【AI 领域翻译规则 — 本平台 100% 是 AI/ML/LLM 行业内容，严格遵守】
+【保险领域翻译与用词规则 — 本平台 100% 是中国保险行业内容，严格遵守】
 
-1. 歧义默认值：以下词在中文有非 AI 歧义，**一律按 AI 含义翻译**：
-   - LLM = 大语言模型（绝不译"法学硕士"/"Master of Laws"）
-   - Token / tokens = 模型 token（保留英文；绝不译"代币"/"令牌"）
-   - Transformer = Transformer 架构（保留英文；不译"变压器"）
-   - Diffusion = 扩散模型（AI 生成，不是物理扩散）
-   - Agent / Agentic = AI 智能体 / 智能体的（不译"代理人"/"中介"）
-   - Alignment = 对齐（AI 安全语境）
-   - Inference = 推理（模型生成）
-   - Reasoning = 推理（注意：与 inference 都译"推理"，必要时用"链式推理"区分 CoT；reasoning model 指 o1/o3/R1 这类思考型模型）
-   - Embedding = 嵌入向量（也可保留英文）
-   - Distillation = 知识蒸馏
-   - Hallucination = 模型幻觉
-   - Fine-tune / Fine-tuning = 微调
-   - Pretrain / Pretraining = 预训练
-   - Context window = 上下文窗口
-   - Prompt = 提示词
-   - Skill / Skills = 技能（Claude 等 Agent 框架的能力包，不译"特长"）
+1. 歧义默认值：以下词在中文有其他含义，**一律按保险含义理解**：
+   - Policy = 保单（绝不译"政策"）；Policyholder = 投保人；Insured = 被保险人
+   - Premium = 保费（绝不译"溢价""高级"）
+   - Claim = 理赔 / 索赔（绝不译"声明""主张"）
+   - Underwriting = 核保 / 承保（区分：对客户是核保，对风险是承保）
+   - Coverage = 保障范围或保额（按语境，不混用）
+   - Deductible = 免赔额；Excess = 免赔额（英式）；Franchise = 起赔额
+   - Rider / Endorsement = 附加险 / 批单
+   - Reserve = 准备金（绝不译"预订"）
+   - Solvency = 偿付能力；Solvency ratio = 偿付能力充足率
+   - Combined ratio = 综合成本率；Loss ratio = 赔付率；Expense ratio = 费用率
+   - Retention = 自留额（再保险语境）/ 续保率（客户语境），按上下文二选一，不混用
+   - Annuity = 年金；Endowment = 两全保险；Whole life = 终身寿险；Term life = 定期寿险
+   - Universal life = 万能险；Unit-linked = 投连险；Participating = 分红型
+   - Reinsurance = 再保险；Ceded = 分出；Retrocession = 转分保
+   - Bancassurance = 银保渠道；Agency = 个险 / 代理人渠道
+   - Surrender = 退保；Lapse = 失效；Maturity = 满期
+   - 报行合一、偿二代、惠民保、百万医疗 —— 这些是中文原词，不翻译、不改写
 
 2. 以下专有名词**一律保留英文原文**，不翻译不加中文括注：
-   - AI 公司：OpenAI / Anthropic / Google DeepMind / xAI / Meta AI / Mistral / DeepSeek / Cohere / HuggingFace（HF）/ Runway / ElevenLabs / Suno / Pika / Midjourney / Perplexity
-   - 模型族（举例 + 通用规则）：GPT / Claude / Gemini / Llama / Qwen / Grok / o 系列 / DeepSeek / Mistral / Mixtral / Phi / Sora / Veo / Imagen
-     **规则**：任何大模型族名、产品代号一律保留英文
-   - 模型版本号（举例 + 通用规则）：GPT-5 / Claude 4.7 / Claude Sonnet 4.6 / Llama 4 / Gemini 3 / o3 / o4 / DeepSeek-V4 / Qwen3.7
-     **规则**：版本号一字不改（包括字母数字后缀如 4o / 4.7 / 405B / V4 / R1），绝不"翻译性扩写"（不要把 "405B" 译成 "4050 亿"，不要把 "V4" 译成 "第 4 代"）
-   - 技术缩写（举例 + 通用规则）：LLM / RAG / RLHF / DPO / LoRA / QLoRA / PEFT / MoE / CoT / ReAct / KV cache / SOTA / AGI / MCP / ADK / NPU / GPU / TPU
-     **规则**：任何 2-5 字母的全大写缩写，默认按 AI/ML 含义保留英文
-   - 评测基准（举例 + 通用规则）：MMLU / GPQA / HumanEval / SWE-bench / SWE-bench Verified / AIME / HLE / ARC-AGI / ARC-AGI 2 / MT-Bench / Chatbot Arena / Aider Polyglot / LiveCodeBench
-     **规则**：以 -bench / -eval 结尾或全大写的评测名一律保留英文
-   - AI 工具/产品：Cursor / Copilot / Codex / Aider / Devin / Cline / Claude Code / Windsurf / Zed / v0 / Bolt / Lovable / Replit Agent
-   - Agent 框架：LangChain / LangGraph / LlamaIndex / CrewAI / AutoGen / Pydantic AI / Vercel AI SDK / DSPy
-   - 推理/部署：Ollama / vLLM / SGLang / TensorRT / Triton / CUDA / ROCm
-   - 通用技术：API / SDK / CLI / IDE / SaaS / CDN / SSO / OAuth / JWT / WebSocket / SSE / gRPC
+   - 监管与规则体系：NFRA / IAIS / IAA / C-ROSS（偿二代）/ IFRS 17 / RBC / Solvency II
+   - 国际再保险与经纪：Swiss Re / Munich Re / Hannover Re / Aon / Marsh / WTW
+   - 评级机构与符号：A.M. Best / S&P / Moody's / Fitch；评级符号 AA- / A+ / BBB 一字不改
+   - 保险业通用缩写：EV（内含价值）/ NBV（新业务价值）/ APE（年化保费）/ VIF / COR（综合成本率）
+     **规则**：这些缩写保留英文，首次出现时在中文里说明一次，之后保持一致
+   - 通用技术缩写：GDP / CPI / ROE / ROA / IRR / ESG
 
-3. 中国厂商**优先用官方中文品牌名**（首次出现可双标"千问（Qwen3）"，后续选一种保持一致）：
-   - 千问（Qwen）/ 文心一言 / 智谱（GLM）/ 月之暗面（Kimi）/ 深度求索（DeepSeek）/ 阶跃星辰（Step）/ 零一万物（Yi）/ 百川 / 豆包（字节）/ 混元（腾讯）/ 可灵（Kling，快手）/ 即梦（Jimeng，字节）/ MiniMax（不译）/ 美团 LongCat / 昆仑万维 Skywork / 面壁 MiniCPM / 华为昇腾 / 寒武纪
+3. 中国机构**优先用官方中文名**，首次出现可双标，之后保持一致：
+   - 中国人保（含人保财险、人保寿险、人保健康）/ 中国人寿 / 中国平安（含平安人寿、平安产险）/ 中国太保（含太保寿险、太保产险）/ 新华保险 / 泰康 / 阳光保险 / 友邦 / 众安
+   - 国家金融监督管理总局（简称金融监管总局；原文指 2023 年改革前的机构时才写"银保监会"）
+   - 中国保险行业协会（中保协）/ 中国保险保障基金 / 中国银保信 / 中国精算师协会
+   - 产品名按条款原名，不意译、不简化、不自行加"旗舰""爆款"一类修饰
 
-4. 代码 / 命令 / URL / 数字单位 **一字不改**保留：
-   - 反引号代码 `code` 不翻译
-   - 命令如 /code-review、pip install、npm run 不译（不要译"代码审查"）
-   - URL 原样
-   - 数字+单位：8k context / 175B params / 3.5x speedup / $3 per M tokens / 99.9%
-   - 金额、参数量、比例、区间必须保留原文的阿拉伯数字和单位；不要把 $10B-$100B 改写成“数百亿至数千亿美元”等中文数量词
+4. 数字、文号与单位 **一字不改**：
+   - 保费、赔付、保额、比例：1.2 万亿元 / 68.3% / 综合成本率 97.5% / 偿付能力充足率 181%
+   - 亿元、万元按原文，不改写成"数十亿""近百亿"
+   - 文号（如金规〔2026〕7 号）、条款编号、产品备案号原样保留
+   - 金额、期限、免赔额必须保留原文的阿拉伯数字和单位
+   - URL、命令、代码 `code` 不翻译

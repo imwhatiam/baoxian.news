@@ -14,7 +14,6 @@ import { ScoreLabel, shownScore } from "../components/ui/Score";
 import { PillTabs } from "../components/ui/Tabs";
 import { ArticleLayout, RailSection, useContainedScroll } from "../components/ui/Page";
 import { Menu, MenuItem } from "../components/ui/Menu";
-import { StarButton } from "../features/feed/parts";
 import { GroupButton, GroupSources } from "../features/feed/ReadingGroup";
 import { StoryFollowups } from "../features/item/StoryFollowups";
 import { MediaGallery } from "../features/item/MediaGallery";
@@ -242,7 +241,6 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
         </div>
       </article>
       <ReaderToolbar
-        item={preview}
         originalLabel={isX ? "原推" : "原文"}
         onShare={async () => {
           if ((await shareOrCopy(preview)) === "copied") setToast("链接已复制");
@@ -374,9 +372,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
       >
         {originalLabel} <IconExternal size={13} />
       </a>
-      <StarButton item={item} size={32} />
-      {moreMenu}
-    </div>
+      {moreMenu}    </div>
   );
   const verdict = (item.selected || shownScore(item.score) !== null) && (
     <div className="flex items-center gap-2">
@@ -412,17 +408,6 @@ function ItemView({ item }: { item: SiteItemDetail }) {
         </RailSection>
       ) : (
         verdict && <RailSection title={shownScore(item.score) !== null ? "AI 评分" : undefined}>{verdict}</RailSection>
-      )}
-      {item.topics.length > 0 && (
-        <RailSection title="主题">
-          <div className="flex flex-wrap gap-1.5">
-            {item.topics.map((t) => (
-              <Link viewTransition key={t.slug} to={`/topics/${t.slug}`} className="chip">
-                {t.name}
-              </Link>
-            ))}
-          </div>
-        </RailSection>
       )}
       {item.tags.length > 0 && (
         <RailSection title="标签">
@@ -562,13 +547,8 @@ function ItemView({ item }: { item: SiteItemDetail }) {
             <span> · {hostOf(item.links.original)}</span>
           </p>
 
-          {(item.topics.length > 0 || item.tags.length > 0) && (
+          {item.tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-1.5 lg:hidden">
-              {item.topics.map((t) => (
-                <Link viewTransition key={t.slug} to={`/topics/${t.slug}`} className="chip">
-                  {t.name}
-                </Link>
-              ))}
               {item.tags.slice(0, 6).map((t) => (
                 <Link key={t} to={`/all?tag=${encodeURIComponent(t)}`} className="chip">
                   #{t}
@@ -597,7 +577,6 @@ function ItemView({ item }: { item: SiteItemDetail }) {
       </ArticleLayout>
 
       <ReaderToolbar
-        item={item}
         originalUrl={item.links.original}
         originalLabel={isX ? "原推" : "原文"}
         onOutline={showOutline ? () => setOutlineOpen(true) : undefined}

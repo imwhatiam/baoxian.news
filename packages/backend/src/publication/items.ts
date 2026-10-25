@@ -1,5 +1,5 @@
-// Public read layer, item level. Every exit (site API, v1, RSS, MCP, sitemap) reads
-// items through these columns and views; which rows are public is decided by scope.ts.
+// Public read layer, item level. Every exit (site API, sitemap) reads items through these
+// columns and views; which rows are public is decided by scope.ts.
 import { CATEGORY_KEYS, toPublicApiCategory, type CategoryKey, type ChannelKey, type PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
 import type { FeedItemSummary, ItemSummary, MediaView, XPostView } from "@aihot/contracts/site";
 import { POLICY } from "@aihot/site";
@@ -57,14 +57,6 @@ export const ITEM_COLUMNS = sql`
   st.public_id::text AS story_public_id, st.title AS story_title,
   CASE WHEN p.channel = 'x' THEN tr.body_text END AS zh_text, qt.text_zh AS quoted_zh`;
 
-/** Public API listings never render article bodies, X media or story metadata. */
-export type ApiItemRow = Pick<ItemRow, "id" | "title" | "original_title" | "summary" | "source_name" | "url" | "published_at" | "discovered_at" | "category" | "score" | "selected" | "reason">;
-/** `selected` is the machine meaning: the report holds its fact's selected seat (scope.ts seatedCondition). */
-export const API_ITEM_COLUMNS = sql`
-  p.article_id AS id, p.title, p.original_title, p.summary, s.name AS source_name, p.url,
-  p.published_at, p.discovered_at, p.category, p.score, (p.selected AND p.seat) AS selected, p.reason`;
-export const API_ITEM_FROM = sql`FROM publications p JOIN sources s ON s.id = p.source_id`;
-
 /** A translation of an older revision is left out: the original changed after it (the worker translates it again). */
 export const ITEM_FROM = sql`
   FROM publications p
@@ -80,16 +72,17 @@ export function channelCondition(channel: ChannelKey | null | undefined) {
   return sql`AND p.channel = ${channel}`;
 }
 
-/** The website's filter: one of its own categories. */
+/** The website's filter: one of its own categories, plus the second category a 大童 item also belongs to. */
 export function categoryCondition(category: CategoryKey | null | undefined) {
   if (!category) return sql``;
-  return sql`AND p.category = ${category}`;
+  return sql`AND (p.category = ${category} OR p.also_category = ${category})`;
 }
 
 /** The public API's, RSS's and MCP's filter: every category the site publishes as this one (PUBLIC_CATEGORIES). */
 export function publicCategoryCondition(category: PublicApiCategoryKey | null | undefined) {
   if (!category) return sql``;
-  return sql`AND p.category IN ${sql(CATEGORY_KEYS.filter((k) => toPublicApiCategory(k) === category))}`;
+  const keys = CATEGORY_KEYS.filter((k) => toPublicApiCategory(k) === category);
+  return sql`AND (p.category IN ${sql(keys)} OR p.also_category IN ${sql(keys)})`;
 }
 
 export function tagCondition(tag: string | null | undefined) {
@@ -211,4 +204,12 @@ export async function seatHolders(rows: ItemRow[], now: Date, db: Db = sql): Pro
     WHERE p.fact_id IN ${db([...new Set(yielding.map((r) => r.fact_id!))])} AND ${seatedCondition(now)} AND ${foldableSelectionCondition()}`;
   const byFact = new Map(holders.map((h) => [Number(h.fact_id), { id: h.id, title: h.title }]));
   return new Map(yielding.flatMap((r) => (byFact.has(Number(r.fact_id)) ? [[r.id, byFact.get(Number(r.fact_id))!] as const] : [])));
+}
+
+/**
+ * Heat from the second probe (heat/probe.ts): the publication row carries it so listing order can use
+ * it (publication/pool.ts). publications belongs to this folder, so the write lives here.
+ */
+export async function setPublicationHeat(articleId: string, heat: number, db: Db): Promise<void> {
+  await db`UPDATE publications SET heat = ${heat} WHERE article_id = ${articleId}`;
 }

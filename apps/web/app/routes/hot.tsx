@@ -322,7 +322,6 @@ export default function HotPage() {
           <IconInfo size={15} />
           热度是怎么算的？
           <span className="ml-auto inline-flex items-center gap-0.5">
-            <span className="group-open/method:hidden">了解榜单</span>
             <span className="hidden group-open/method:inline">收起</span>
             <IconChevronDown size={13} className="transition-transform duration-200 group-open/method:rotate-180" />
           </span>

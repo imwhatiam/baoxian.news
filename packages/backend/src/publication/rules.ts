@@ -18,7 +18,6 @@ export interface SourceFacts {
   participation_mode: string;
   first_party: boolean;
   site_fulltext: boolean;
-  syndicate_fulltext: boolean;
 }
 
 export function channelOf(sourceKind: string, hasXPost: boolean): "x" | "news" {
@@ -56,11 +55,6 @@ export function isSelectable(eligible: boolean, judgedSelected: boolean | null, 
  */
 export function bodyModeOf(source: SourceFacts, bodyStatus: string, hasBody: boolean): "full" | "summary" {
   return source.site_fulltext && bodyStatus === "ok" && hasBody ? "full" : "summary";
-}
-
-/** Full-RSS redistribution whitelist: only sources that explicitly allow it. */
-export function mayRedistribute(source: SourceFacts, bodyMode: "full" | "summary"): boolean {
-  return source.syndicate_fulltext && bodyMode === "full";
 }
 
 /**

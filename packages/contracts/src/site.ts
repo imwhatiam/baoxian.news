@@ -145,8 +145,6 @@ export interface SiteItemDetail extends ItemSummary {
   body: { zh: string | null; original: string | null; zhKind: "translation" | "original" | null; complete: boolean } | null;
   outline: OutlineEntry[];
   relatedStories: StoryRef[];
-  /** The topics the report belongs to. */
-  topics: TopicLink[];
   indexable: boolean;
   markdownAvailable: boolean;
   group: GroupInfo | null;
@@ -261,8 +259,6 @@ export interface StoryDetail {
   timeline: StoryReportView[];
   heat: HeatPoint[];
   related: Array<StoryRef & { relation: "storyline" | "related" }>;
-  /** The topics its reports belong to, most reports first. */
-  topics: TopicLink[];
 }
 
 // Reports (daily / weekly / monthly)
@@ -350,36 +346,12 @@ export interface ReportNavigationResponse {
   items: ReportNavigationEntry[];
 }
 
-/** Site-wide facts for the web shell: the changelog red-dot anchor. */
-export interface SiteMeta {
-  changelogVersion: string;
-}
-
-/** One entry of the site's changelog (site/changelog.json), newest first. */
-export interface ChangelogRelease {
-  date: string;
-  time: string;
-  kind: "更新" | "优化" | "公告" | "下线";
-  title: string;
-  body: string[];
-  /** A notice readers must act on: drawn in the warning red so it cannot be skimmed past. */
-  urgent?: true;
-  /** A major release's long form, drawn by the site's own drawing when it ships one; its shape is the site's. */
-  feature?: unknown;
-}
-
-export interface ChangelogResponse {
-  latestVersion: string;
-  releases: ChangelogRelease[];
-}
-
 /**
  * The about page's contact codes (uploaded in the admin or shipped with the site; null when there is
  * none) and the maker's avatar through the image proxy.
  */
 export interface SiteContact {
   wechatQr: string | null;
-  feishuQr: string | null;
   makerAvatar: string | null;
 }
 
@@ -407,74 +379,11 @@ export interface StoryFollowup {
 }
 export interface StoryFollowupsResponse { items: StoryFollowup[]; more: boolean }
 
-/**
- * A starred item as the site can show it now (/api/site/items/availability, keyed by id). Stars keep the
- * source name of the day they were saved; a public item also brings the name shown today.
- */
-export interface ItemAvailability {
-  status: "public" | "summary-only" | "unavailable";
-  sourceName?: string;
-}
-
 /** An issue in the archive and the calendar, numbered in its whole series; closed daily months omit their titles. */
 export interface ReportNavigationEntry { key: string; issueNumber: number; title?: string | null; count?: number }
 
-// Topics
 
-export type TopicGroupKey = "company" | "field" | "genre";
-
-export interface TopicGroup {
-  key: TopicGroupKey;
-  name: string;
-  blurb: string;
-}
-
-export interface TopicLink {
-  slug: string;
-  name: string;
-}
-
-/** A mark drawn beside a name: its logo, or a monogram when there is none. */
-export interface Brand {
-  /** Site-relative logo path, or null when only a monogram is available. */
-  src: string | null;
-  monogram: string;
-  /** Raster marks get a light backing plate in dark mode. */
-  raster: boolean;
-}
-
-export interface TopicSummary extends TopicLink {
-  group: TopicGroupKey;
-  definition: string;
-  /** Companies: their logo mark where the site has one, else their initial. */
-  brand: Brand | null;
-  /** Selected reports, one per fact (as v1 and RSS count the selected set). */
-  total: number;
-  /** Of those, in the last 30 days. */
-  recent: number;
-  /** Enough content to be listed and indexed. */
-  indexable: boolean;
-  /** The newest selected report. */
-  latest: { title: string; at: string } | null;
-}
-
-export interface TopicsResponse {
-  groups: TopicGroup[];
-  topics: TopicSummary[];
-}
-
-/** Phone search only needs links, not the topic pages or full hot ranking. */
 export interface SearchSuggestions {
-  topics: Array<TopicLink & { group: TopicGroupKey }>;
   hot: Array<{ rank: number; title: string; to: string }>;
 }
 
-export interface TopicPage {
-  topic: TopicSummary & { groupName: string; /** Every listed report, selected or not. */ poolTotal: number };
-  /** The site's modules' parts of the page, under their names; each module's web part draws its own. */
-  modules: Record<string, unknown>;
-  items: FeedItemSummary[];
-  page: number;
-  pageCount: number;
-  pageSize: number;
-}

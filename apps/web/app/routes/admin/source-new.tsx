@@ -23,7 +23,7 @@ const TEMPLATES: Record<string, Record<string, unknown>> = {
 export default function NewSource() {
   const navigate = useNavigate();
   const { run, pending } = useAdminAction();
-  const [form, setForm] = useState({ id: "", name: "", kind: "rss", tier: "T2", participation_mode: "editorial", interval_minutes: 30, first_party: false, site_fulltext: SOURCE_DEFAULTS.siteFulltext, syndicate_fulltext: false, tags: "" });
+  const [form, setForm] = useState({ id: "", name: "", kind: "rss", tier: "T2", participation_mode: "editorial", interval_minutes: 30, first_party: false, site_fulltext: SOURCE_DEFAULTS.siteFulltext, tags: "" });
   const [config, setConfig] = useState(JSON.stringify(TEMPLATES.rss, null, 2));
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<AdminSourcePreview | null>(null);
@@ -63,7 +63,7 @@ export default function NewSource() {
               </Select>
             </Field>
             <Field label="采集间隔（分钟）">
-              <Input type="number" min={1} max={1440} value={form.interval_minutes} onChange={(e) => setForm({ ...form, interval_minutes: Number(e.target.value) })} />
+              <Input type="number" min={1} max={4320} value={form.interval_minutes} onChange={(e) => setForm({ ...form, interval_minutes: Number(e.target.value) })} />
             </Field>
             <Field label="参与方式">
               <Select value={form.participation_mode} onChange={(e) => setForm({ ...form, participation_mode: e.target.value })}>
@@ -79,15 +79,10 @@ export default function NewSource() {
               <Input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
             </Field>
             <div className="flex flex-col justify-end gap-2 text-[13px] text-ink-2">
-              {([
-                ["site_fulltext", "站内可展示全文"],
-                ["syndicate_fulltext", "对外接口可带全文"],
-              ] as const).map(([k, label]) => (
-                <label key={k} className="inline-flex items-center gap-2">
-                  <input type="checkbox" className="size-4 accent-[var(--accent)]" checked={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.checked })} />
-                  {label}
-                </label>
-              ))}
+              <label className="inline-flex items-center gap-2">
+                <input type="checkbox" className="size-4 accent-[var(--accent)]" checked={form.site_fulltext} onChange={(e) => setForm({ ...form, site_fulltext: e.target.checked })} />
+                站内可展示全文
+              </label>
             </div>
           </div>
           <div className="mt-4">

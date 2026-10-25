@@ -16,7 +16,6 @@ import { correctPublicationDate, previewPublicationDateCorrection } from '@aihot
 import { publishArticle } from '@aihot/backend/publication/publish';
 import { getBoss, stopBoss } from '@aihot/backend/jobs/queue';
 import { installModules } from '@aihot/backend/modules';
-import { pushSelected } from '@aihot/backend/notify/selected';
 import { randomUUID } from 'node:crypto';
 import { QUEUES } from '@aihot/backend/jobs/queue';
 
@@ -152,8 +151,6 @@ test('a recently misdated old article returns to history without new analysis or
   assert.equal((await sql`SELECT 1 FROM story_signals WHERE article_id=${id}`).length,0);
   const [hook]=await sql`SELECT value FROM settings WHERE key=${`date-hook:${id}`}`;
   assert.deepEqual(hook!.value.previousStoryIds,[story!.id]);
-  assert.deepEqual(await pushSelected(id),{status:'skipped',reason:'not live'});
-  assert.equal((await sql`SELECT 1 FROM deliveries WHERE subject_id=${id}`).length,0);
   assert.deepEqual(after.jobs.filter(job=>job.name!==QUEUES.digest),before.jobs.filter(job=>job.name!==QUEUES.digest));
   assert.equal((await correctPublicationDate(id,input,'test')).status,'corrected');
 });
@@ -183,7 +180,6 @@ test('verified stale-on-discovery publication inside the current week still leav
   assert.equal(a!.published_at.toISOString(),publishedAt);
   assert.equal(a!.backfill,true);
   assert.equal(a!.backfill_reason,'stale-on-discovery');
-  assert.deepEqual(await pushSelected(id),{status:'skipped',reason:'not live'});
 });
 
 // A feed can shift an original date without crossing the stale-on-discovery boundary.
@@ -236,8 +232,6 @@ test('retracting a proven repost date removes live evidence while retaining mate
   assert.equal(a!.backfill_reason,'unknown-publication-time');
   assert.equal((await sql`SELECT 1 FROM fact_articles WHERE article_id=${id}`).length,0);
   assert.equal((await sql`SELECT 1 FROM story_signals WHERE article_id=${id}`).length,0);
-  assert.deepEqual(await pushSelected(id),{status:'skipped',reason:'not public selected'});
-  assert.equal((await sql`SELECT 1 FROM deliveries WHERE subject_id=${id}`).length,0);
   assert.deepEqual(after.jobs.filter(job=>job.name!==QUEUES.digest),before.jobs.filter(job=>job.name!==QUEUES.digest));
   assert.deepEqual(await correctPublicationDate(id,input,'test'),{articleId:id,revision:before.a!.revision,status:'corrected',publishedAt:null});
 });

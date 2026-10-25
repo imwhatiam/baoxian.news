@@ -1,6 +1,6 @@
 // Public pool (/all) with numeric pages, and search in its two orderings.
 import type { PoolResponse, TimelineFilters } from "@aihot/contracts/site";
-import { beijingDate, beijingMidnight } from "@aihot/contracts/time";
+import { BEIJING_TIMEZONE, beijingDate, beijingMidnight } from "@aihot/contracts/time";
 import { one, sql, withCustomPlans, type Db } from "../db.ts";
 import { cachedByKey, sharedSearch } from "../lib/cache.ts";
 import {
@@ -8,7 +8,7 @@ import {
   type ItemRow,
 } from "./items.ts";
 import { listedCondition } from "./scope.ts";
-import { TOPICS } from "./topics.ts";
+import { entityIdentity } from "../editorial/vocabulary.ts";
 
 export const POOL_PAGE_SIZE = 40;
 export const POOL_MAX_PAGES = 50;
@@ -74,26 +74,22 @@ export function directMatchCondition(terms: string[]) {
   return terms.reduce((acc, t) => sql`${acc} AND p.search_text LIKE ${"%" + t + "%"}`, sql``);
 }
 
-const normalizeAlias = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
-
 /**
- * The company a whole query names: a company topic's slug, full name,
- * each part of "OpenAI / ChatGPT" and its other names. Then the search also takes the articles about
- * that company (their subject tag), so "claude" finds Anthropic's news that never writes the word.
- * Only the whole query counts: "deepseek v4" stays a text search, not all of DeepSeek.
+ * The company a whole query names (the pack's ENTITIES: its name, aliases, other names). Then the
+ * search also takes the articles about that company — the subject tag publish.ts derives from the
+ * structure step — so "平安" finds the reports that never write the name. Only the whole query
+ * counts: "中国平安 财报" stays a text search, not all of 中国平安.
  */
 function queryEntityTag(q: string): string | null {
-  const want = normalizeAlias(q);
-  if (!want) return null;
-  const topic = TOPICS.find((t) => t.entityId && t.aliases.some((a) => normalizeAlias(a) === want));
-  return topic ? `entity:${topic.entityId}` : null;
+  const id = entityIdentity(q);
+  return id ? `entity:${id}` : null;
 }
 
-/**
- * The public APIs' q (v1 and MCP): every term matches the subject, title or summary, or the start of a
- * body whose full text may be shown, as the API documents it ("title / Chinese title / Chinese summary
- * / body"). Results stay in time order.
- */
+/** A search that names a company also matches its subject tag; anything else stays a text match. */
+function matchOrSubject(text: ReturnType<typeof directMatchCondition>, entityTag: string | null) {
+  return entityTag ? sql`AND (p.tags @> ${[entityTag]}::text[] OR (TRUE ${text}))` : text;
+}
+
 /** A plain Latin or digit term must start a word in the body: "rag" is not inside "storage". */
 function bodyMatch(t: string) {
   const like = sql`ps.body LIKE ${"%" + t + "%"}`;
@@ -150,17 +146,19 @@ async function queryPool(query: PoolQuery, now: Date): Promise<PoolResponse> {
 
   // Searches go through pool_search (eligible items only): trigram indexes for longer terms, a small
   // table to scan for one- and two-character ones.
-  const matchOrSubject = (text: ReturnType<typeof directMatchCondition>) => (entityTag ? sql`AND (p.tags @> ${[entityTag]}::text[] OR (TRUE ${text}))` : text);
   const like = (col: ReturnType<typeof sql>, t: string) => sql`${col} LIKE ${"%" + t + "%"}`;
+  // 二次热度：同一天之内，别家也报道得多的排在前面；跨天仍按时间，列表的日期分节不变。
+  // 只有几百行时表达式足够，将来行数上来了再换成 (day_key, heat, timeline_at) 的生成列与索引。
+  const dayHeat = () => sql`(p.timeline_at AT TIME ZONE ${BEIJING_TIMEZONE})::date DESC, p.heat DESC`;
   const run = async (db: Db) => {
     if (!q) {
       // Page ids from the timeline index first, then the joins for those rows only.
       const rows = await db<ItemRow[]>`
         WITH page AS (
           SELECT p.article_id FROM publications p WHERE ${listedCondition(now)} ${filters}
-          ORDER BY p.timeline_at DESC, p.article_id DESC LIMIT ${POOL_PAGE_SIZE} OFFSET ${offset})
+          ORDER BY ${dayHeat()}, p.timeline_at DESC, p.article_id DESC LIMIT ${POOL_PAGE_SIZE} OFFSET ${offset})
         SELECT ${ITEM_COLUMNS} ${ITEM_FROM} WHERE p.article_id IN (SELECT article_id FROM page)
-        ORDER BY p.timeline_at DESC, p.article_id DESC`;
+        ORDER BY ${dayHeat()}, p.timeline_at DESC, p.article_id DESC`;
       // A fixed clock (tests, replays) never shares cached totals.
       return { rows, total: query.now ? await listedCount(query, now) : await poolTotal(query) };
     }
@@ -185,15 +183,19 @@ async function queryPool(query: PoolQuery, now: Date): Promise<PoolResponse> {
         FULL JOIN (SELECT article_id FROM pool_search WHERE body LIKE ${"%" + terms[0]! + "%"}) b ON b.article_id = d.article_id`
         : sql`SELECT ps.article_id, (${partScore}) AS part FROM pool_search ps WHERE ${anyMatch}`;
       type RankedRow = Omit<ItemRow, "id"> & { id: string | null; rel: number; total: number };
-      // Equal relevance: a seated selected item first, then the higher quality score, then the newest.
-      const tie = sql`(CASE WHEN p.selected AND p.seat THEN 1000 ELSE 0 END) + coalesce(p.score, 0)`;
-      // A query naming a company also takes the articles about it, ranked first.
+      // Equal relevance: a seated selected item first, then the higher quality score, then the most
+      // reported elsewhere, then the newest.
+      const tie = sql`(CASE WHEN p.selected AND p.seat THEN 1000 ELSE 0 END) + coalesce(p.score, 0) + LEAST(coalesce(p.heat, 0), 20)`;
+      // A query naming a company also takes the articles about it, and ranks them first. Grouping by
+      // item keeps a candidate that matched both text and tag in the list (and the total) once.
       const scored = entityTag ? sql`
-          SELECT p.article_id, p.timeline_at, max(matches.part) + (${titleScore}) + (CASE WHEN p.tags @> ${[entityTag]}::text[] THEN 10 ELSE 0 END) AS rel, ${tie} AS tie
+          SELECT p.article_id, p.timeline_at,
+            max(matches.part) + (${titleScore}) + (CASE WHEN p.tags @> ${[entityTag]}::text[] THEN 10 ELSE 0 END) AS rel,
+            ${tie} AS tie
           FROM (SELECT article_id, part FROM matches UNION ALL SELECT article_id, 0 FROM publications WHERE tags @> ${[entityTag]}::text[]) matches
-          JOIN publications p ON p.article_id = matches.article_id
+          JOIN publications p ON p.article_id = matches.article_id JOIN sources s ON s.id = p.source_id
           WHERE ${listedCondition(now)} ${filters}
-          GROUP BY p.article_id, p.timeline_at, p.title, p.tags, p.selected, p.seat, p.score` : sql`
+          GROUP BY p.article_id, p.timeline_at, p.title, p.tags, p.selected, p.seat, p.score, p.heat` : sql`
           SELECT p.article_id, p.timeline_at, matches.part + (${titleScore}) AS rel, ${tie} AS tie
           FROM matches JOIN publications p ON p.article_id = matches.article_id JOIN sources s ON s.id = p.source_id
           WHERE ${listedCondition(now)} ${filters}`;
@@ -213,14 +215,20 @@ async function queryPool(query: PoolQuery, now: Date): Promise<PoolResponse> {
     // search rows, where one- and two-character terms scan a small table instead of every item.
     const rows = await db<ItemRow[]>`
       WITH page AS (
-        SELECT p.article_id FROM publications p WHERE ${listedCondition(now)} ${filters} ${matchOrSubject(directMatchCondition(terms))}
-        ORDER BY p.timeline_at DESC, p.article_id DESC LIMIT ${POOL_PAGE_SIZE} OFFSET ${offset})
+        SELECT p.article_id FROM publications p WHERE ${listedCondition(now)} ${filters} ${matchOrSubject(directMatchCondition(terms), entityTag)}
+        ORDER BY ${dayHeat()}, p.timeline_at DESC, p.article_id DESC LIMIT ${POOL_PAGE_SIZE} OFFSET ${offset})
       SELECT ${ITEM_COLUMNS} ${ITEM_FROM} WHERE p.article_id IN (SELECT article_id FROM page)
-      ORDER BY p.timeline_at DESC, p.article_id DESC`;
+      ORDER BY ${dayHeat()}, p.timeline_at DESC, p.article_id DESC`;
     const direct = terms.reduce((acc, t) => sql`${acc} AND ${like(sql`ps.direct`, t)}`, sql``);
-    const { n } = one(await db<{ n: number }[]>`
-      SELECT count(*) AS n FROM (SELECT 1 FROM pool_search ps JOIN publications p ON p.article_id = ps.article_id
-        WHERE ${listedCondition(now)} ${filters} ${matchOrSubject(direct)} LIMIT ${cap}) t`);
+    // A company query counts the same items the page lists, the tag-only ones included; every other
+    // query counts the pool's search rows, where one- and two-character terms scan a small table.
+    const { n } = one(entityTag
+      ? await db<{ n: number }[]>`
+          SELECT count(*) AS n FROM (SELECT 1 FROM publications p
+            WHERE ${listedCondition(now)} ${filters} ${matchOrSubject(directMatchCondition(terms), entityTag)} LIMIT ${cap}) t`
+      : await db<{ n: number }[]>`
+          SELECT count(*) AS n FROM (SELECT 1 FROM pool_search ps JOIN publications p ON p.article_id = ps.article_id
+            WHERE ${listedCondition(now)} ${filters} ${direct} LIMIT ${cap}) t`);
     return { rows, total: Number(n) };
   };
 

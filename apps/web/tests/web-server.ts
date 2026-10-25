@@ -17,7 +17,7 @@ export const FIXTURE_AT = "2026-10-04T08:00:00.000Z";
 export function feedItem(fields: Partial<FeedItemSummary> & Pick<FeedItemSummary, "id" | "title">): FeedItemSummary {
   return {
     summary: "固定摘要", reason: "固定推荐理由", source: { name: "Fixture" }, publishedAt: FIXTURE_AT, timelineAt: FIXTURE_AT,
-    category: "ai-models", tags: [], score: 80, selected: true, channel: "news", x: null, ...fields,
+    category: "product", tags: [], score: 80, selected: true, channel: "news", x: null, ...fields,
   };
 }
 
@@ -27,15 +27,15 @@ export function itemDetail(fields: Partial<SiteItemDetail> & Pick<SiteItemDetail
     ...feedItem({ id: fields.id, title: fields.title }), x: null, originalTitle: null, links: { original: "https://example.org/article" },
     discoveredAt: FIXTURE_AT, story: null, readingMode: "full", author: null,
     body: { zh: "<p>固定正文</p>", original: null, zhKind: "translation", complete: true },
-    outline: [], relatedStories: [], topics: [], indexable: true, markdownAvailable: true, group: null, hasTranslation: true, bodyLanguage: "zh",
+    outline: [], relatedStories: [], indexable: true, markdownAvailable: true, group: null, hasTranslation: true, bodyLanguage: "zh",
     ...fields,
   };
 }
 
 /**
  * A synthetic api. `route` answers first: a value it returns is sent as JSON (with any status it set), and
- * a response it ends itself is left alone. What it leaves unanswered gets the reads every page makes (site
- * metadata, the analytics beacon, health), and anything else a 404.
+ * a response it ends itself is left alone. What it leaves unanswered gets the reads every page makes (the
+ * analytics beacon, health), and anything else a 404.
  */
 export function fakeApi(route: (url: URL, res: ServerResponse, req: IncomingMessage) => unknown = () => undefined): Server {
   return createServer(async (req, res) => {
@@ -44,7 +44,6 @@ export function fakeApi(route: (url: URL, res: ServerResponse, req: IncomingMess
     const body = await route(url, res, req);
     if (res.writableEnded) return;
     if (body !== undefined) return res.end(JSON.stringify(body));
-    if (url.pathname === "/api/site/meta") return res.end(JSON.stringify({ changelogVersion: "fixture" }));
     if (url.pathname === "/api/site/track") { res.statusCode = 204; return res.end(); }
     if (url.pathname === "/api/health") return res.end("{}");
     res.statusCode = 404;

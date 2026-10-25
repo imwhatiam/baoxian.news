@@ -108,7 +108,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
           <ol className="pt-1">
             <Step title="信源" meta={`${KIND_LABEL[a.source_kind] ?? a.source_kind} · ${String(a.tier).replace("_", ".")} · ${MODE_LABEL[a.participation_mode] ?? a.participation_mode}`}>
               <Link className="text-ink hover:text-accent" to={`/admin/sources/${encodeURIComponent(a.source_id)}`}>{a.source_name}</Link>
-              <span className="text-ink-4"> · 站内全文 {a.site_fulltext ? "允许" : "不允许"} · 对外全文 {a.syndicate_fulltext ? "允许" : "不允许"}</span>
+              <span className="text-ink-4"> · 站内全文 {a.site_fulltext ? "允许" : "不允许"}</span>
             </Step>
             <Step title="发现" meta={`${c.discoveries.length} 次`}>
               <ul className="space-y-1">
@@ -184,7 +184,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
                     ["推荐理由", p.reason],
                     [
                       "正文展示",
-                      `${p.body_mode}${p.syndicate ? " · 对外可带全文" : ""}${
+                      `${p.body_mode}${
                         p.indexable ? (p.seo_indexed_at ? " · 可收录（手动标记）" : " · 可收录（精选自动）") : p.seo_excluded_at ? " · 不收录（手动排除）" : " · 不收录"
                       }`,
                     ],
@@ -245,21 +245,6 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
                 {c.membership.length > 0 && <Button size="sm" onClick={() => setDialog("detach")}>移出事件</Button>}
                 {story?.story_id && <Button size="sm" onClick={() => setDialog("merge")}>把这个事件并入…</Button>}
               </div>
-            </Step>
-            <Step title="投递" last meta={`${c.deliveries.length} 条`} tone={c.deliveries.some((d) => d.status === "unknown") ? "bad" : c.deliveries.length ? "accent" : "muted"}>
-              {c.deliveries.length ? (
-                <ul className="space-y-1">
-                  {c.deliveries.map((d, i) => (
-                    <li key={i} className="flex flex-wrap gap-2">
-                      <span>{d.target_key}</span>
-                      <Badge tone={d.status === "sent" ? "ok" : d.status === "unknown" ? "bad" : "muted"}>{d.status}</Badge>
-                      <span className="num text-ink-4">{bj(d.created_at)}{d.sent_at ? ` → ${bj(d.sent_at)}` : ""}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <span className="text-ink-4">没有推送记录</span>
-              )}
             </Step>
           </ol>
         </Card>

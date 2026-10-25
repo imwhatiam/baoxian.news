@@ -83,7 +83,7 @@ export default function AllPage() {
   };
   const title = f.q ? `搜索“${f.q}”` : f.tag ? `#${f.tag}` : null;
   const updated = beijingTime(data.freshness);
-  // Searches are remembered in this browser for the phone search (listed in the privacy notice).
+  // Searches are remembered in this browser for the phone search.
   useEffect(() => {
     if (f.q) addRecentSearch(f.q);
   }, [f.q]);

@@ -1,0 +1,1 @@
+ALTER TABLE sources VALIDATE CONSTRAINT sources_interval_minutes_check_4320;

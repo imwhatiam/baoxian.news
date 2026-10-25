@@ -1,7 +1,8 @@
 // Article body extraction: readable text from the article page, or "unconfirmed" — never a wrong body.
-// Jina Reader is the budgeted fallback for pages that only render in a browser.
+// A self-hosted renderer (RENDER_URL) handles JavaScript pages; Jina Reader is the budgeted fallback.
 import { Readability } from "@mozilla/readability";
 import type { parseHTML } from "linkedom";
+import { config } from "../config.ts";
 import { sql } from "../db.ts";
 import { guardedFetch, languageHeaders } from "../lib/http-fetch.ts";
 import { assertPageContent, contentDocument, UnavailablePageError } from "../lib/page-content.ts";
@@ -21,7 +22,7 @@ export interface ExtractedBody {
   html: string;
   text: string;
   images: Array<{ kind: "image"; url: string; width: number | null; height: number | null }>;
-  via: "readability" | "jina";
+  via: "readability" | "render" | "jina";
   /** The page's publication metadata; neither modification time nor dates mentioned in its prose. */
   publishedAt?: Date | null;
   publicationTime?: string | null;
@@ -148,10 +149,12 @@ export interface PageRules {
   utcOffset?: string;
   preserve?: PreserveRule[];
   acceptLanguage?: string;
+  /** The article page only renders in a browser: go straight to the renderer. */
+  render?: boolean;
 }
 
 export const pageRules = (config: SourceRow["config"]): PageRules =>
-  ({ utcOffset: articleUtcOffset(config), preserve: config.detail?.preserve, acceptLanguage: config.acceptLanguage });
+  ({ utcOffset: articleUtcOffset(config), preserve: config.detail?.preserve, acceptLanguage: config.acceptLanguage, render: config.render === true });
 
 type Doc = ReturnType<typeof parseHTML>["document"];
 type El = NonNullable<ReturnType<Doc["querySelector"]>>;
@@ -417,8 +420,39 @@ export function readableDocument(document: Doc, url: string, rules: PageRules = 
   return { html: clean, text, images, via: "readability", ...date };
 }
 
+/**
+ * The rendered page from the self-hosted Playwright service, for pages that ship an empty shell to a
+ * plain HTTP client (Angular/React/Vue). Absent, unreachable or still unreadable: null, and the caller
+ * falls back to Jina.
+ */
+async function renderBody(url: string, rules: PageRules): Promise<ExtractedBody | null> {
+  const endpoint = config.renderUrl;
+  if (!endpoint) return null;
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ url }),
+    signal: AbortSignal.timeout(60_000),
+  });
+  if (!res.ok) return null;
+  const page = (await res.json()) as { html?: unknown; url?: unknown };
+  if (typeof page.html !== "string" || !page.html) return null;
+  const got = readable(page.html, typeof page.url === "string" ? page.url : url, rules);
+  return got ? { ...got, via: "render" } : null;
+}
+
 export async function extractFromUrl(url: string, subject: string, rules: PageRules = {}, opts: { paidFallback?: boolean } = {}): Promise<ExtractedBody | null> {
   if (isVideoPageUrl(url)) return null;
+  // A page the source marks as browser-rendered: the plain fetch would only find chrome (copyright
+  // notices and menus), which Readability would happily return as the body.
+  if (rules.render) {
+    try {
+      const rendered = await renderBody(url, rules);
+      if (rendered) return rendered;
+    } catch {
+      // Fall through to the plain fetch.
+    }
+  }
   try {
     const res = await guardedFetch(url, { headers: languageHeaders(rules.acceptLanguage), timeoutMs: 20_000, maxBytes: 6 * 1024 * 1024 });
     if (isVideoPageUrl(res.url)) return null;
@@ -430,6 +464,14 @@ export async function extractFromUrl(url: string, subject: string, rules: PageRu
     }
   } catch {
     // fall through to Jina
+  }
+  if (!rules.render) {
+    try {
+      const rendered = await renderBody(url, rules);
+      if (rendered) return rendered;
+    } catch {
+      // The renderer is best effort: unavailable or timed out, fall through to Jina.
+    }
   }
   if (opts.paidFallback === false) return null;
   try {

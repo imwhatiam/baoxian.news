@@ -27,8 +27,8 @@ const provider = await stub((_hit, req) => {
 pointModels(provider.url);
 const app = await buildApp();
 before(async () => {
-  await sql`INSERT INTO sources (id,name,kind,tier,participation_mode,site_fulltext,syndicate_fulltext,next_fetch_at)
-    VALUES (${source},'Original post test','x_search','T1','editorial',true,true,'2100-01-01')`;
+  await sql`INSERT INTO sources (id,name,kind,tier,participation_mode,site_fulltext,next_fetch_at)
+    VALUES (${source},'Original post test','x_search','T1','editorial',true,'2100-01-01')`;
 });
 after(async () => { await app.close(); await provider.close(); await stopBoss(); await closeDb(); });
 
@@ -87,19 +87,13 @@ test("rebuilding an image-only post replaces historical model replies across pub
   assert.equal(detail.links.original, url);
   const feed = (await app.inject({ method: "GET", url: "/api/site/pool" })).json();
   assert.ok(JSON.stringify(feed).includes(id), "image-only post stays in the website feed");
-  for (const path of ["/api/v1/items?mode=all&window=7d&limit=100", `/items/${id}/markdown`, "/feed/full.xml"]) {
-    const res = await app.inject({ method: "GET", url: path });
-    assert.equal(res.statusCode, 200, path);
-    assert.ok(res.body.includes(url), `${path}: original address survives`);
-    assert.ok(!/请补充正文|错误译文|没有推文文字内容/.test(res.body), `${path}: no model reply survives`);
-    if (path.endsWith("markdown")) {
-      assert.ok(res.body.includes("screenshot.png"), "the image survives export");
-      assert.match(res.body, /!\[\]\(https?:\/\//, "the downloaded image link works outside the website");
-    }
-    if (path === "/feed/full.xml") {
-      assert.ok(res.body.includes("content:encoded") && res.body.includes("screenshot.png"), "the licensed image survives full RSS");
-    }
-  }
+  const path = `/items/${id}/markdown`;
+  const res = await app.inject({ method: "GET", url: path });
+  assert.equal(res.statusCode, 200, path);
+  assert.ok(res.body.includes(url), `${path}: original address survives`);
+  assert.ok(!/请补充正文|错误译文|没有推文文字内容/.test(res.body), `${path}: no model reply survives`);
+  assert.ok(res.body.includes("screenshot.png"), "the image survives export");
+  assert.match(res.body, /!\[\]\(https?:\/\//, "the downloaded image link works outside the website");
 });
 
 test("real text containing links and a fetched X Article keep their normal writing path", async () => {

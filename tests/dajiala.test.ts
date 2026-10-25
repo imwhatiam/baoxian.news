@@ -1,6 +1,7 @@
-// WeChat accounts through Dajiala: a body that failed for a passing reason is fetched again on the
-// next check and the article goes back to analysis; a body already stored is not bought again; the key
-// the requests carry in their query never follows a redirect to another origin.
+// WeChat accounts through Dajiala: the article page's own body is read from #js_content and only a
+// page without one is bought; a body that failed for a passing reason is fetched again on the next
+// check and the article goes back to analysis; a body already stored is not bought again; the key the
+// requests carry in their query never follows a redirect to another origin.
 import { Reply, stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import http from "node:http";
@@ -9,13 +10,25 @@ import { config } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { mpArticle } from "@aihot/backend/providers/dajiala";
-import { checkMpAccount } from "@aihot/backend/sources/mp";
+import { checkMpAccount, fetchPageBody } from "@aihot/backend/sources/mp";
 
 const T = tag();
 const MP_SOURCE = `test-mp-${T}`;
 
+/** Article pages served locally: one carrying the body container, one as a removed post comes back. */
+const pages = await origin((url, res) => {
+  // The body must clear the page's own minimum length: shorter text is a removed post or a template.
+  const text = `页面正文 ${T}。`.repeat(40);
+  const html = url.pathname.includes("with-body")
+    ? `<html><head><title>公众号文章</title><meta name="description" content="页面摘要"></head><body><span id="js_name">测试号</span><div id="js_content"><p>${text}</p></div></body></html>`
+    : `<html><head><title>该内容已被发布者删除</title></head><body><p>${text}</p></body></html>`;
+  res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+  res.end(html);
+});
+
 // Dajiala: one new post whose body answers 503 the first time.
-const MP_URL = `https://mp.weixin.qq.com/s/test-${T}`;
+const MP_URL = `${pages.url}/s/removed-${T}`;
+const PAGE_URL = `${pages.url}/s/with-body-${T}`;
 let bodyCalls = 0;
 const dajiala = await stub((_hit, req) => {
   if (req.url.startsWith("/fbmain/monitor/v3/post_history")) {
@@ -38,8 +51,18 @@ before(async () => {
 });
 after(async () => {
   await dajiala.close();
+  await pages.close();
   await stopBoss();
   await closeDb();
+});
+
+test("the article page's own body is used, and a page without one is left to Dajiala", async () => {
+  const page = await fetchPageBody(PAGE_URL);
+  assert.match(page?.content ?? "", new RegExp(`页面正文 ${T}`), "the container's HTML is the body");
+  assert.equal(page?.author, "测试号");
+  assert.equal(page?.desc, "页面摘要");
+  assert.equal(page?.local, true);
+  assert.equal(await fetchPageBody(MP_URL), null, "a removed post has no body to read");
 });
 
 test("a WeChat body that failed for a passing reason is fetched on the next check and analysed again", async () => {

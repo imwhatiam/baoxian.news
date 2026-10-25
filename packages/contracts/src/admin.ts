@@ -39,7 +39,7 @@ export interface AdminRerun {
 }
 
 /** Items waiting for the admin, shown on the navigation: the engine's, and the modules' under their own keys. */
-export type AdminNavCounts = Partial<Record<"feedback" | "sources" | "runs", number>> & Record<string, number | undefined>;
+export type AdminNavCounts = Partial<Record<"sources" | "runs", number>> & Record<string, number | undefined>;
 
 /** One manual change (audit_log), as a history list shows it. */
 export interface AdminAuditEntry {
@@ -68,7 +68,7 @@ export const REPLACEABLE_SOURCE_KINDS = ["rss", "web_list", "json_list"] as cons
 export type ReplaceableSourceKind = typeof REPLACEABLE_SOURCE_KINDS[number];
 
 export interface AdminSourceUpdate {
-  patch: Partial<Pick<AdminSource, "name" | "enabled" | "interval_minutes" | "tier" | "participation_mode" | "signal_group_id" | "first_party" | "owner_entity_id" | "site_fulltext" | "syndicate_fulltext" | "tags">> & (
+  patch: Partial<Pick<AdminSource, "name" | "enabled" | "interval_minutes" | "tier" | "participation_mode" | "signal_group_id" | "first_party" | "owner_entity_id" | "site_fulltext" | "tags">> & (
     { kind?: never; config?: Record<string, unknown> } | { kind: ReplaceableSourceKind; config: Record<string, unknown> }
   );
   version: string;
@@ -113,7 +113,6 @@ export interface AdminSource {
   signal_group_id: string | null;
   interval_minutes: number;
   site_fulltext: boolean;
-  syndicate_fulltext: boolean;
   enabled: boolean;
   health: string;
   fail_count: number;
@@ -197,7 +196,6 @@ export interface AdminPublication {
   selected_ready_at: Timestamp | null;
   visible_after: Timestamp | null;
   body_mode: string;
-  syndicate: boolean;
   indexable: boolean;
   seo_indexed_at: Timestamp | null;
   seo_excluded_at: Timestamp | null;
@@ -206,13 +204,13 @@ export interface AdminPublication {
   updated_at: Timestamp;
 }
 
-/** An item's whole chain: source → discoveries → revisions → judgements → publication → grouping → deliveries. */
+/** An item's whole chain: source → discoveries → revisions → judgements → publication → grouping. */
 export interface AdminContentChain {
   article: {
     id: string; source_id: string; url: string; identity_key: string; title: string; author: string | null; language: string | null;
     published_at: Timestamp | null; published_at_claim: string | null; discovered_at: Timestamp; timeline_at: Timestamp; backfill: boolean;
     body_status: string; revision: number; processing_state: string; processing_error: string | null; grouped_at: Timestamp | null; body_chars: number | null;
-    source_name: string; source_kind: string; tier: string; participation_mode: string; site_fulltext: boolean; syndicate_fulltext: boolean;
+    source_name: string; source_kind: string; tier: string; participation_mode: string; site_fulltext: boolean;
   };
   discoveries: Array<{ source_id: string; via: string; discovered_at: Timestamp }>;
   revisions: Array<{ revision: number; title: string; content_hash: string | null; created_at: Timestamp }>;
@@ -226,36 +224,7 @@ export interface AdminContentChain {
   ledger: Array<{ seq: number; op: string; visible_at: Timestamp; changed_at: Timestamp }>;
   membership: Array<{ fact_id: number; role: string; manual: boolean; fact_public_id: string; fact_title: string; story_id: number | null; story_public_id: string | null; story_title: string | null }>;
   decisions: Array<{ verdict: string; fact_id: number | null; story_id: number | null; receipt_id: number | null; candidates: unknown; created_at: Timestamp }>;
-  deliveries: Array<{ target_key: string; dedupe_key: string; status: string; attempts: number; response: string | null; created_at: Timestamp; sent_at: Timestamp | null }>;
   history: AdminAuditEntry[];
-}
-
-// Feedback
-
-export interface AdminFeedbackRow {
-  id: number;
-  content: string;
-  email: string | null;
-  page_url: string | null;
-  /** local (viewable here until forwarded), feishu (in the internal chat), gone (could not be forwarded), or null. */
-  screenshot: "local" | "feishu" | "gone" | null;
-  source_hash: string;
-  status: string;
-  note: string | null;
-  forwarded_at: Timestamp | null;
-  forward_error: string | null;
-  created_at: Timestamp;
-  updated_at: Timestamp;
-  banned: boolean;
-  email_banned: boolean;
-  from_source: number;
-}
-
-export interface AdminFeedback {
-  page: number;
-  rows: AdminFeedbackRow[];
-  counts: Record<string, number>;
-  bans: Array<{ source_hash: string; reason: string | null; created_by: string | null; created_at: Timestamp; expires_at: Timestamp | null }>;
 }
 
 // Runs
@@ -269,18 +238,6 @@ export interface AdminReceiptIssue {
   status: string;
   attempts: number;
   error: string | null;
-  created_at: Timestamp;
-  updated_at: Timestamp;
-}
-
-export interface AdminDeliveryIssue {
-  id: number;
-  target_key: string;
-  subject_kind: string;
-  subject_id: string;
-  status: string;
-  attempts: number;
-  response: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 }
@@ -302,7 +259,6 @@ export interface AdminRuns {
     next_fetch_at: Timestamp | null; interval_minutes: number; last_error: string | null;
   }>;
   receipts: { counts: Record<string, number>; issues: AdminReceiptIssue[] };
-  deliveries: AdminDeliveryIssue[];
   errors: Array<{ error: string; n: number; last: Timestamp; example: string }>;
   retrying: { count: number; next: Timestamp | null };
   ingest: Array<{ client: string; kind: string; status: string; error: string | null; summary: unknown; created_at: Timestamp }>;
@@ -311,19 +267,6 @@ export interface AdminRuns {
 }
 
 // Settings
-
-export interface AdminNotifyTarget {
-  key: string;
-  purpose: string;
-  kind: string;
-  enabled: boolean;
-  enabled_at: Timestamp | null;
-  config_ref: string | null;
-  note: string | null;
-  updated_at: Timestamp;
-  deliveries_7d: number;
-  last_sent_at: Timestamp | null;
-}
 
 export interface AdminBudget {
   service: string;
@@ -337,8 +280,7 @@ export interface AdminBudget {
 }
 
 export interface AdminSettings {
-  contact: { wechatQr: string | null; feishuQr: string | null };
-  targets: AdminNotifyTarget[];
+  contact: { wechatQr: string | null };
   budgets: AdminBudget[];
 }
 

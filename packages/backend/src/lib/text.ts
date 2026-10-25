@@ -119,10 +119,3 @@ export function cjkRatio(s: string): number {
   const cjk = s.match(/[㐀-鿿豈-﫿]/g) ?? [];
   return cjk.length / letters.length;
 }
-
-export function guessLanguage(s: string): "zh" | "en" | "other" {
-  const ratio = cjkRatio(s);
-  if (ratio > 0.3) return "zh";
-  if (/[a-z]/i.test(s)) return "en";
-  return "other";
-}

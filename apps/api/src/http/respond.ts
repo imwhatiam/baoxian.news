@@ -1,9 +1,7 @@
-// Shared HTTP helpers: Problem JSON, public API headers, ETag / 304, strict query parsing.
+// Shared HTTP helpers: Problem JSON, ETag / 304, strict query parsing.
 import { createHash } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { POLICY } from "@aihot/site";
-import { NO_STORE, PUBLIC_API_CORS } from "@aihot/contracts/http-policy";
-import { siteUrl } from "@aihot/backend/publication/links";
+import { NO_STORE } from "@aihot/contracts/http-policy";
 import type { JsonNotice } from "@aihot/backend/modules";
 
 const PROBLEM_TITLES: Record<number, string> = {
@@ -46,29 +44,6 @@ export function sendProblem(req: FastifyRequest, reply: FastifyReply, p: Problem
     .header("X-Request-Id", req.id)
     .header("Cache-Control", p.cacheControl ?? NO_STORE)
     .send(Buffer.from(JSON.stringify(body)));
-}
-
-export interface PublicHeadersOptions {
-  /** A deprecated endpoint: Deprecation, the day it stops (Sunset, an HTTP date) and its migration guide as a Link. */
-  deprecation?: { sunset: string; guide: string };
-  cors?: boolean;
-}
-
-/** CORS for public machine endpoints, and the site's usage-policy headers (POLICY.terms.headers). */
-export function applyPublicHeaders(reply: FastifyReply, opts: PublicHeadersOptions = {}) {
-  if (opts.cors !== false) for (const [k, v] of Object.entries(PUBLIC_API_CORS)) reply.header(k, v);
-  // Every Link value goes into one header: the terms that come with the policy headers, then the rest.
-  const links: string[] = [];
-  if (POLICY.terms.headers) {
-    for (const [k, v] of Object.entries(POLICY.terms.headers)) reply.header(k, v);
-    links.push(`<${siteUrl("/terms")}>; rel="terms-of-service"`);
-  }
-  if (opts.deprecation) {
-    reply.header("Deprecation", "true");
-    reply.header("Sunset", opts.deprecation.sunset);
-    links.push(`<${opts.deprecation.guide}>; rel="deprecation"`);
-  }
-  if (links.length) reply.header("Link", links.join(", "));
 }
 
 export function weakEtag(prefix: string, body: string): string {

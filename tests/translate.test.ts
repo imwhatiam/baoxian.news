@@ -66,8 +66,8 @@ async function detail(id: string) {
 }
 
 before(async () => {
-  await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, site_fulltext, syndicate_fulltext, next_fetch_at)
-            VALUES (${SOURCE}, 'Test translate', 'rss', 'T1', 'editorial', true, false, '2100-01-01')`;
+  await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, site_fulltext, next_fetch_at)
+            VALUES (${SOURCE}, 'Test translate', 'rss', 'T1', 'editorial', true, '2100-01-01')`;
 });
 after(async () => {
   await app.close();
@@ -83,7 +83,7 @@ test("Japanese bodies with kanji are translated with or without a language hint"
     bodyText: '这是已经用中文写好的完整正文。', bodyHtml: '<p>这是已经用中文写好的完整正文。</p>',
     bodyStatus: 'ok', via: 'fetch', publishedAt: new Date(), discoveredAt: new Date(Date.now() + 600_000) });
   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
-    VALUES (${chinese},1,'rule','pass','ai-models','新的模型已发布','摘要','理由',90,true)`;
+    VALUES (${chinese},1,'rule','pass','product','新的模型已发布','摘要','理由',90,true)`;
   await publishArticle(chinese, { releasedAt: new Date(Date.now() - 60_000) });
   await sql`INSERT INTO translation_attempts(article_id,revision,attempts,outcome,reason)
     VALUES (${chinese},1,1,'skipped','no foreign-language body')`;
@@ -92,7 +92,7 @@ test("Japanese bodies with kanji are translated with or without a language hint"
     const { articleId } = await upsertMaterial({ sourceId: SOURCE, url: `${URL_}-japanese-${language}`, title: `新しい人工知能モデル ${T}`,
       language, bodyText: text, bodyHtml: `<p>${text}</p>`, bodyStatus: "ok", via: "fetch", publishedAt: new Date() });
     await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
-      VALUES (${articleId},1,'rule','pass','ai-models','发布新模型','摘要','理由',90,true)`;
+      VALUES (${articleId},1,'rule','pass','product','发布新模型','摘要','理由',90,true)`;
     await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
     await sql`INSERT INTO translation_attempts(article_id,revision,attempts,outcome,reason)
       VALUES (${articleId},1,1,'skipped','no foreign-language body')`;
@@ -112,16 +112,14 @@ test("a presentation-only source update repairs original and translated bodies w
     bodyStatus: "ok" as const, via: "fetch" as const, publishedAt: new Date() };
   const { articleId } = await upsertMaterial(material);
   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
-    VALUES (${articleId},1,'rule','pass','ai-models','模型改进','摘要','理由',90,true)`;
+    VALUES (${articleId},1,'rule','pass','product','模型改进','摘要','理由',90,true)`;
   await sql`UPDATE articles SET processing_state='analyzed',grouping_status='complete' WHERE id=${articleId}`;
-  await sql`UPDATE sources SET syndicate_fulltext=true WHERE id=${SOURCE}`;
   await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
   await sql`INSERT INTO translations(article_id,lang,revision,body_html,body_text,complete,origin)
     VALUES (${articleId},'zh',1,${'<p>模型有实用改进。</p><p>阅读<a href="https://example.com/old">文档</a>。</p>'},'模型有实用改进。阅读文档。',true,'model')`;
   const [before] = await sql`SELECT revision,content_hash,processing_state,grouping_status,timeline_at FROM articles WHERE id=${articleId}`;
   const [publication] = await sql`SELECT revision,selected,fact_id,story_id FROM publications WHERE article_id=${articleId}`;
   const calls = provider.hits();
-  const oldFeed = await app.inject({ method: "GET", url: "/feed/full.xml" });
   const result = await upsertMaterial({ ...material, bodyHtml: afterHtml, media: [{ kind: "image", url: "https://example.com/chart.png" }] });
   assert.equal(result.revised, false);
   const body = (await detail(articleId)).body;
@@ -135,19 +133,12 @@ test("a presentation-only source update repairs original and translated bodies w
   assert.equal(markdown.statusCode, 200);
   assert.match(markdown.body, /chart\.png/);
   assert.match(markdown.body, /example.com\/docs/);
-  const feed = await app.inject({ method: "GET", url: "/feed/full.xml", headers: { "if-none-match": oldFeed.headers.etag! } });
-  assert.equal(feed.statusCode, 200, "the unchanged semantic revision still changes the full-feed ETag");
-  const feedItem = feed.body.split("<item>").find(item => item.includes(`<guid isPermaLink="false">${articleId}</guid>`));
-  assert.match(feedItem ?? "", /chart\.png/);
-  assert.match(feedItem ?? "", /example.com\/docs/);
-  assert.match(feedItem ?? "", /模型有实用改进/);
   assert.deepEqual({ ...(await sql`SELECT revision,content_hash,processing_state,grouping_status,timeline_at FROM articles WHERE id=${articleId}`)[0] }, { ...before });
   assert.deepEqual({ ...(await sql`SELECT revision,selected,fact_id,story_id FROM publications WHERE article_id=${articleId}`)[0] }, { ...publication });
   assert.equal(provider.hits(), calls);
   await sql`UPDATE articles SET updated_at='2020-01-01T00:00:00Z' WHERE id=${articleId}`;
   await upsertMaterial({ ...material, bodyHtml: afterHtml, media: [{ kind: "image", url: "https://example.com/chart.png" }] });
   assert.equal((await sql`SELECT updated_at FROM articles WHERE id=${articleId}`)[0]!.updated_at.toISOString(), '2020-01-01T00:00:00.000Z', "JSONB property order must not make identical media look changed on every collection");
-  await sql`UPDATE sources SET syndicate_fulltext=false WHERE id=${SOURCE}`;
 });
 
 test("a layout refresh follows image identity when translated text moved its pictures", async () => {
@@ -169,7 +160,7 @@ test("a translation finishing during a layout refresh cannot restore the missing
     bodyHtml: `<p>${text}</p>`, bodyStatus: "ok" as const, via: "fetch" as const, publishedAt: new Date() };
   const { articleId } = await upsertMaterial(input);
   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
-    VALUES (${articleId},1,'rule','pass','ai-models','模型价格','摘要','理由',90,true)`;
+    VALUES (${articleId},1,'rule','pass','product','模型价格','摘要','理由',90,true)`;
   await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
   asked = gate(); hold = gate();
   const translating = translateArticle(articleId);
@@ -184,7 +175,7 @@ test("a translation finishing during a layout refresh cannot restore the missing
 test("a text corrected while its translation was running is translated again, and the old translation is not shown", async () => {
   const { articleId: id } = await material("ten");
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
-            VALUES (${id}, 1, 'rule', 'pass', 'ai-models', ${`价格更新-${T}`}, '摘要', '理由', 90, true)`;
+            VALUES (${id}, 1, 'rule', 'pass', 'product', ${`价格更新-${T}`}, '摘要', '理由', 90, true)`;
   await publishArticle(id, { releasedAt: new Date(Date.now() - 60_000) });
 
   // The model is asked about revision 1; the source corrects the price before it answers.
@@ -226,7 +217,7 @@ test("links and images inside a paragraph survive the translation, or the paragr
     bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now() + 1_200_000),
   });
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
-            VALUES (${id}, 1, 'rule', 'pass', 'ai-models', ${`链接-${T}`}, '摘要', '理由', 90, true)`;
+            VALUES (${id}, 1, 'rule', 'pass', 'product', ${`链接-${T}`}, '摘要', '理由', 90, true)`;
   await publishArticle(id, { releasedAt: new Date(Date.now() - 60_000) });
   await translatePending({ limit: 1 });
   const [tr] = await sql<{ body_html: string; complete: boolean }[]>`SELECT body_html, complete FROM translations WHERE article_id = ${id}`;
@@ -247,7 +238,7 @@ test("the post a selected X post quotes is translated once and shown with the it
     xPost: { tweetId: `8${Date.now()}`, authorName: "Boris", handle: "bcherny", text: "Try it!", quoted: { authorName: "Anthropic", handle: "AnthropicAI", text: `Introducing Claude Sonnet 5.5 ${T}`, url: `https://x.com/AnthropicAI/status/${tweetId}` } },
   });
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
-            VALUES (${id}, 1, 'rule', 'pass', 'ai-models', ${`引用-${T}`}, '摘要', '理由', 90, true)`;
+            VALUES (${id}, 1, 'rule', 'pass', 'product', ${`引用-${T}`}, '摘要', '理由', 90, true)`;
   await publishArticle(id, { releasedAt: new Date(Date.now() - 60_000) });
   const run = await translatePending({ limit: 1 });
   assert.ok(run.quotes >= 1);
@@ -272,7 +263,7 @@ test("an unusable X translation gets a bounded fresh attempt instead of terminal
     xPost: { tweetId: `9${Date.now()}`, authorName: "Test", handle: "example", text },
   });
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
-            VALUES (${id}, 1, 'rule', 'pass', 'ai-models', ${`校验-X-${T}`}, '摘要', '理由', 90, true)`;
+            VALUES (${id}, 1, 'rule', 'pass', 'product', ${`校验-X-${T}`}, '摘要', '理由', 90, true)`;
   await publishArticle(id, { releasedAt: new Date(Date.now() - 60_000) });
   misalignedAnswers.set(marker, 1);
   const before = provider.hits();
@@ -301,7 +292,7 @@ test("fully unusable body translations stop after three recorded attempts", asyn
     publishedAt: new Date(), discoveredAt: new Date(Date.now() + 7_200_000),
   });
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
-            VALUES (${id}, 1, 'rule', 'pass', 'ai-models', ${`校验正文-${T}`}, '摘要', '理由', 90, true)`;
+            VALUES (${id}, 1, 'rule', 'pass', 'product', ${`校验正文-${T}`}, '摘要', '理由', 90, true)`;
   await publishArticle(id, { releasedAt: new Date(Date.now() - 60_000) });
   misalignedAnswers.set(marker, 10);
   const before = provider.hits();
@@ -328,7 +319,7 @@ test("a received alignment retry survives a failed translation commit without pa
     xPost: { tweetId, authorName: "Test", handle: "example", text: post },
   });
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
-            VALUES (${id}, 1, 'rule', 'pass', 'ai-models', ${`恢复测试-${T}`}, '摘要', '理由', 90, true)`;
+            VALUES (${id}, 1, 'rule', 'pass', 'product', ${`恢复测试-${T}`}, '摘要', '理由', 90, true)`;
   await publishArticle(id, { releasedAt: new Date(Date.now() - 60_000) });
   misalignedAnswers.set(marker, 1);
   const before = provider.hits();
@@ -376,7 +367,7 @@ test("an overloaded provider and a timed-out request use up no attempts: after t
     bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now() + 14_400_000),
   });
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
-            VALUES (${id}, 1, 'rule', 'pass', 'ai-models', ${`超时-${T}`}, '摘要', '理由', 90, true)`;
+            VALUES (${id}, 1, 'rule', 'pass', 'product', ${`超时-${T}`}, '摘要', '理由', 90, true)`;
   await publishArticle(id, { releasedAt: new Date(Date.now() - 60_000) });
 
   // First overloaded (503, nothing billed), then the connection is lost after the request went out.
@@ -419,7 +410,7 @@ test("account 429 pauses translation without spending the article attempts", asy
     bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now()+20_000_000),
   });
   await sql`INSERT INTO analyses(article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
-    VALUES(${id},1,'rule','pass','ai-models','账户等待','摘要','理由',90,true)`;
+    VALUES(${id},1,'rule','pass','product','账户等待','摘要','理由',90,true)`;
   await publishArticle(id,{releasedAt:new Date(Date.now()-60_000)});
   const original = process.env.TRANSLATE_MODEL;
   const denied=await stub(()=>new Reply(429,{error:{code:"1113",message:"account unavailable"}}));

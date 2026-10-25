@@ -6,7 +6,7 @@
 import { beijingDate } from "@aihot/contracts/time";
 import { DEPLOYMENT } from "@aihot/site";
 import { sql } from "../db.ts";
-import type { Finding } from "../notify/feishu.ts";
+import type { Finding } from "../operations/findings.ts";
 
 function budget(env: string | undefined, site: number | undefined, unit: number): number {
   const value = env ?? site;

@@ -1,370 +1,1141 @@
 {
-  "$comment": "示范信源：首次启动时导入（scripts/seed.ts），已存在的不会被覆盖。之后在后台“信源”里新建、修改和暂停。字段说明见 docs/customize.md。",
+  "$comment": "示范信源：首次启动时导入（scripts/seed.ts），已存在的不会被覆盖。之后在后台“信源”里新建、修改和暂停。字段说明见 docs/customize.md。cisf 两个栏目已用 cheerio 实测（各 6 条、带日期）；iachina 是 external 推送，由 scripts/push-iachina.ts 每小时解析四个栏目推入，需要 .env 里配 INGEST_TOKEN。中国经济网保险频道（ce-insurance，finance.ce.cn/insurance1/scrollnews/）已实测：一页 200 条、带日期、日更 2—8 条，是大事记引用最多的综合媒体保险板块。2026-10-23 下午按用户要求把人民银行·新闻发布（pbc-news）与财政部·金融司工作动态（mof-jrs-news）从「二次热度探查源」升级为信源：两个列表页都是静态 HTML、日期藏在 span 里，实测各解析出 15 / 9 条、0 条缺日期。mof 的列表标题在页面上被截断，titleSelector 故意指向 li 里不存在的 img，让 fromHtml 回落到 a 的 title 属性取完整标题。暂未配置：金融监管总局官网是 Angular 渲染（其新闻由 cisf「机构动态」和 iachina「监管要闻」转载覆盖）；保险资管协会 /xhdt.html 混排 134 条、42 条指向公众号且无独立前缀，等找到该栏目自己的列表页再配。2026-10-23 下午按用户要求删掉了深蓝保、薄荷保两个公众号（种子与数据库同步删除，备份在 .data/deleted-sources-2026-10-23-d.json）。公众号信源于 2026-10-23 按后台实际配置补录：ghid 用极致了的原始 ID 或微信号，均按名称核对过昵称。2026-10-23 傍晚按用户要求新增「国际」分类与 22 个国外 RSS 信源（kind=rss，2016 行起）。全部地址都在 2026-10-23 用 curl 实测过状态码与 <item>：可用的 22 个都在这里，保险行业博客 III / CNN Money / IIHS 三个地址已失效、Insurance Business / Artemis / Insurtech Insights 对本站出口 IP 返回 403（Cloudflare）、Asia Insurance Review 三个 feed 返回 500，均未加入。中国台湾寿险公会的 feed 只有 2015 年一条、保险犯罪防治中心是中文且内容偏题，都不属于国际，未加入。首发只回填 5 条（initialBackfillLimit），避免 Commercial Risk（100 条）和 EIOPA（139 条）首轮把正文与模型成本顶起来；三个境外监管源按官方一手给 T1，其余按媒体给 T2（门槛 76，国际内容进精选会很少，需要更多入选就调分级或门槛）。SOA 两个源是播客音频，进不了正文分析流程，先接上观察，若确认只出音频可在后台停用。Coverager（coverager.com/feed/）用站点的爬虫 UA（BaoxianHotBot）请求返回 403、换成浏览器 UA 才 200，说明它按 UA 拦爬虫，不是地址写错；不改 UA 就跑不了，先 enabled=false 停用。同一次实测里 Insurance Business、Artemis 两种 UA 都 403/连不上，未加入。",
   "sources": [
     {
-      "id": "rss-openai-news",
-      "name": "OpenAI News",
-      "kind": "rss",
+      "id": "cisf-company",
+      "name": "保险保障基金 · 公司新闻",
+      "kind": "web_list",
       "config": {
-        "feedUrl": "https://openai.com/news/rss.xml",
+        "url": "https://www.cisf.cn/cisf/xwzx/gsxw/index.shtml",
+        "parseMode": "html",
+        "itemSelector": "ul.lb > li",
+        "linkSelector": "a",
+        "titleSelector": "a",
+        "publishedAtSelector": "p",
+        "allowUrlPrefixes": [
+          "https://www.cisf.cn/cisf/"
+        ],
         "_aihot": {
-          "initialBackfillLimit": 8
+          "initialBackfillLimit": 5
         }
       },
-      "tier": "T1",
-      "owner_entity_id": "openai",
+      "tier": "T1_5",
+      "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": [
-        "官方"
+        "行业机构"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-google-deepmind",
-      "name": "Google DeepMind",
-      "kind": "rss",
+      "id": "cisf-regulator-watch",
+      "name": "保险保障基金 · 机构动态",
+      "kind": "web_list",
       "config": {
-        "feedUrl": "https://deepmind.google/blog/rss.xml",
+        "url": "https://www.cisf.cn/cisf/xwzx/jgdt/index.shtml",
+        "parseMode": "html",
+        "itemSelector": "ul.lb > li",
+        "linkSelector": "a",
+        "titleSelector": "a",
+        "publishedAtSelector": "p",
         "_aihot": {
-          "initialBackfillLimit": 8
+          "initialBackfillLimit": 5
         }
       },
-      "tier": "T1",
-      "owner_entity_id": "google",
+      "tier": "T1_5",
+      "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": [
-        "官方"
+        "行业机构",
+        "转载监管"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-google-research",
-      "name": "Google Research",
-      "kind": "rss",
+      "id": "ce-insurance",
+      "name": "中国经济网 · 保险频道",
+      "kind": "web_list",
       "config": {
-        "feedUrl": "https://research.google/blog/rss/",
+        "url": "https://finance.ce.cn/insurance1/scrollnews/",
+        "parseMode": "html",
+        "itemSelector": "td.font14",
+        "linkSelector": "a",
+        "titleSelector": "a",
+        "publishedAtSelector": "span.rq1",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": [
+          "https://finance.ce.cn/insurance1/"
+        ],
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "iachina",
+      "name": "中国保险行业协会",
+      "kind": "external",
+      "config": {},
+      "tier": "T1_5",
+      "owner_entity_id": "iachina",
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "行业协会"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "nfra-policies",
+      "name": "金融监管总局 · 政策解读",
+      "kind": "json_list",
+      "config": {
+        "url": "https://www.nfra.gov.cn/cn/static/data/DocInfo/SelectItemAndDocByItemPId/data_itemId=914,pageSize=10.json",
+        "mode": "json_api",
         "_aihot": {
           "initialBackfillLimit": 8
+        },
+        "render": true,
+        "itemsPath": "data.2.docInfoVOList",
+        "titlePaths": [
+          "docSubtitle"
+        ],
+        "urlTemplate": "https://www.nfra.gov.cn/cn/view/pages/ItemDetail.html?docId={docId}&itemId=916",
+        "summaryPaths": [
+          "docSummary"
+        ],
+        "externalIdPath": "docId",
+        "publishedAtPath": "publishDate",
+        "publishedAtUtcOffset": "+08:00"
+      },
+      "tier": "T1",
+      "owner_entity_id": "nfra",
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "监管",
+        "官方"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "nfra-news",
+      "name": "金融监管总局 · 监管动态",
+      "kind": "json_list",
+      "config": {
+        "url": "https://www.nfra.gov.cn/cn/static/data/DocInfo/SelectItemAndDocByItemPId/data_itemId=914,pageSize=10.json",
+        "mode": "json_api",
+        "_aihot": {
+          "initialBackfillLimit": 8
+        },
+        "render": true,
+        "itemsPath": "data.1.docInfoVOList",
+        "titlePaths": [
+          "docSubtitle"
+        ],
+        "urlTemplate": "https://www.nfra.gov.cn/cn/view/pages/ItemDetail.html?docId={docId}&itemId=915",
+        "summaryPaths": [
+          "docSummary"
+        ],
+        "externalIdPath": "docId",
+        "publishedAtPath": "publishDate",
+        "publishedAtUtcOffset": "+08:00"
+      },
+      "tier": "T1",
+      "owner_entity_id": "nfra",
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "监管",
+        "官方"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "nfra-qa",
+      "name": "金融监管总局 · 政策法规",
+      "kind": "json_list",
+      "config": {
+        "url": "https://www.nfra.gov.cn/cn/static/data/DocInfo/SelectItemAndDocByItemPId/data_itemId=923,pageSize=10.json",
+        "mode": "json_api",
+        "_aihot": {
+          "initialBackfillLimit": 8
+        },
+        "render": true,
+        "itemsPath": "data.2.docInfoVOList",
+        "titlePaths": [
+          "docSubtitle"
+        ],
+        "urlTemplate": "https://www.nfra.gov.cn/cn/view/pages/ItemDetail.html?docId={docId}&itemId=926",
+        "summaryPaths": [
+          "docSummary"
+        ],
+        "externalIdPath": "docId",
+        "publishedAtPath": "publishDate",
+        "publishedAtUtcOffset": "+08:00"
+      },
+      "tier": "T1_5",
+      "owner_entity_id": "nfra",
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "监管",
+        "官方"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "pbc-news",
+      "name": "中国人民银行 · 新闻发布",
+      "kind": "web_list",
+      "config": {
+        "url": "http://www.pbc.gov.cn/goutongjiaoliu/113456/113469/index.html",
+        "parseMode": "html",
+        "itemSelector": "td[height=\"22\"][align=\"left\"]",
+        "linkSelector": "a",
+        "titleSelector": "a",
+        "publishedAtSelector": "span.hui12",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": [
+          "http://www.pbc.gov.cn/goutongjiaoliu/"
+        ],
+        "_aihot": {
+          "initialBackfillLimit": 5
         }
       },
       "tier": "T1",
-      "owner_entity_id": "google",
+      "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": [
-        "官方",
+        "监管",
+        "官方"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "mof-jrs-news",
+      "name": "财政部 · 金融司工作动态",
+      "kind": "web_list",
+      "config": {
+        "url": "https://jrs.mof.gov.cn/gongzuodongtai/",
+        "parseMode": "html",
+        "itemSelector": "ul.liBox > li",
+        "linkSelector": "a",
+        "titleSelector": "img",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": [
+          "https://jrs.mof.gov.cn/gongzuodongtai/"
+        ],
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "监管",
+        "官方"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "shie",
+      "name": "上海保险交易所",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gh_f2ba476c2a92",
+        "nickname": "上海保险交易所",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "行业机构"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "iic",
+      "name": "中国保险学会",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gh_f69075bc783e",
+        "nickname": "中国保险学会",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "行业协会",
         "研究"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-hugging-face",
-      "name": "Hugging Face Blog",
-      "kind": "rss",
+      "id": "caa",
+      "name": "中国精算师协会",
+      "kind": "mp_account",
       "config": {
-        "feedUrl": "https://huggingface.co/blog/feed.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
+        "ghid": "gh_42b4de59dd12",
+        "nickname": "中国精算师协会",
+        "maxNewPerCheck": 8
       },
-      "tier": "T1",
-      "owner_entity_id": "hugging-face",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方",
-        "开源"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-microsoft-research",
-      "name": "Microsoft Research",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://www.microsoft.com/en-us/research/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": "microsoft",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方",
-        "研究"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-nvidia-blog",
-      "name": "NVIDIA Blog",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://blogs.nvidia.com/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": "nvidia",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-aws-ml",
-      "name": "AWS Machine Learning Blog",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://aws.amazon.com/blogs/machine-learning/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
+      "tier": "T1_5",
       "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 4320,
       "tags": [
-        "官方",
-        "教程"
+        "行业协会",
+        "精算"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-github-ai",
-      "name": "GitHub Blog · AI & ML",
-      "kind": "rss",
+      "id": "cbiama",
+      "name": "中国银行保险资产管理业协会",
+      "kind": "mp_account",
       "config": {
-        "feedUrl": "https://github.blog/ai-and-ml/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
+        "ghid": "gh_10a7d5f4aaf4",
+        "nickname": "中国银行保险资产管理业协会",
+        "maxNewPerCheck": 8
       },
-      "tier": "T1",
+      "tier": "T1_5",
       "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 4320,
       "tags": [
-        "官方"
+        "行业协会",
+        "资管"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-mistral",
-      "name": "Mistral AI",
-      "kind": "rss",
+      "id": "gh_a3e79567c209",
+      "name": "13个精算师",
+      "kind": "mp_account",
       "config": {
-        "feedUrl": "https://mistral.ai/news/rss",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
+        "ghid": "thirteen-actuaries",
+        "nickname": "13个精算师",
+        "maxNewPerCheck": 8
       },
-      "tier": "T1",
+      "tier": "T1_5",
       "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-bair",
-      "name": "Berkeley AI Research",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://bair.berkeley.edu/blog/feed.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 180,
-      "tags": [
-        "研究"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-the-verge-ai",
-      "name": "The Verge · AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 60,
+      "interval_minutes": 4320,
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-techcrunch-ai",
-      "name": "TechCrunch · AI",
-      "kind": "rss",
+      "id": "Insurview-2016",
+      "name": "保观",
+      "kind": "mp_account",
       "config": {
-        "feedUrl": "https://techcrunch.com/category/artificial-intelligence/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
+        "ghid": "Insurview-2016",
+        "nickname": "保观",
+        "maxNewPerCheck": 8
       },
-      "tier": "T2",
+      "tier": "T1_5",
       "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 60,
+      "interval_minutes": 4320,
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-ars-technica-ai",
-      "name": "Ars Technica · AI",
-      "kind": "rss",
+      "id": "baoqi",
+      "name": "保契",
+      "kind": "mp_account",
       "config": {
-        "feedUrl": "https://arstechnica.com/ai/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
+        "ghid": "gh_ada21089ee20",
+        "nickname": "保契",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "媒体",
+        "评论"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "gossip_insurance",
+      "name": "保险八卦女",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gossip_insurance",
+        "nickname": "保险八卦女",
+        "maxNewPerCheck": 8
       },
       "tier": "T2",
       "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 60,
+      "interval_minutes": 4320,
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-mit-tech-review-ai",
-      "name": "MIT Technology Review · AI",
-      "kind": "rss",
+      "id": "baoxianbagua",
+      "name": "保险一哥",
+      "kind": "mp_account",
       "config": {
-        "feedUrl": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
+        "ghid": "baoxianbagua",
+        "nickname": "保险一哥",
+        "maxNewPerCheck": 8
       },
-      "tier": "T2",
+      "tier": "T1_5",
       "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 4320,
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-the-decoder",
-      "name": "The Decoder",
-      "kind": "rss",
+      "id": "caixian-hudong",
+      "name": "财险互动",
+      "kind": "mp_account",
       "config": {
-        "feedUrl": "https://the-decoder.com/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
+        "ghid": "gh_a75a1c43591f",
+        "nickname": "财险互动",
+        "maxNewPerCheck": 8
       },
       "tier": "T2",
       "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 60,
+      "interval_minutes": 4320,
+      "tags": [
+        "财险"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "datong",
+      "name": "大童保险管家",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "DT_20080801",
+        "nickname": "大童保险管家",
+        "maxNewPerCheck": 3
+      },
+      "tier": "T1",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "大童"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "dayu-ceping",
+      "name": "大鱼测评",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gh_32d4546b0158",
+        "nickname": "大鱼测评",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "测评"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "insuranceforce",
+      "name": "慧保天下",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "insuranceforce",
+        "nickname": "慧保天下",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
       "tags": [
         "媒体"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-simon-willison",
-      "name": "Simon Willison",
+      "id": "jinribao",
+      "name": "今日保",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gh_d023a478cecf",
+        "nickname": "今日保",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "jingsuan-shijue",
+      "name": "精算视觉",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gh_941ab018cc3a",
+        "nickname": "精算视觉",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "精算"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "lanjing-insurance",
+      "name": "蓝鲸保险",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gh_d27f41e1b59b",
+        "nickname": "蓝鲸保险",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "qzrbaoxian",
+      "name": "圈中人保险网",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "qzrbaoxian",
+        "nickname": "圈中人保险网",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "xianlianshe",
+      "name": "险联社",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gh_50c9a5ac58a6",
+        "nickname": "险联社",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "xianqi-gaocan",
+      "name": "险企高参",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gh_4cf24ad91182",
+        "nickname": "险企高参",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "zhekou-xishu",
+      "name": "折扣系数",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gh_e4488047d0c6",
+        "nickname": "折扣系数",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "财险"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "zhongguo-baoxianjia",
+      "name": "中国保险家",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gh_114801bce19e",
+        "nickname": "中国保险家",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "媒体",
+        "人物"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "cbin-news",
+      "name": "中国银行保险报",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "cbin-news",
+        "nickname": "中国银行保险报",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "baoping-er",
+      "name": "保瓶儿",
+      "kind": "mp_account",
+      "config": {
+        "ghid": "gh_3047e1f383bf",
+        "nickname": "保瓶儿",
+        "maxNewPerCheck": 8
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 4320,
+      "tags": [
+        "测评"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "ij-us",
+      "name": "Insurance Journal",
       "kind": "rss",
       "config": {
-        "feedUrl": "https://simonwillison.net/atom/everything/",
+        "feedUrl": "https://www.insurancejournal.com/rss/news",
+        "acceptLanguage": "en-US,en;q=0.9",
         "_aihot": {
-          "initialBackfillLimit": 8
+          "initialBackfillLimit": 5
         }
       },
       "tier": "T2",
       "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": [
-        "个人"
+        "国际",
+        "行业媒体"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-import-ai",
-      "name": "Import AI",
+      "id": "claims-journal",
+      "name": "Claims Journal",
       "kind": "rss",
       "config": {
-        "feedUrl": "https://importai.substack.com/feed",
+        "feedUrl": "https://www.claimsjournal.com/rss/news",
+        "acceptLanguage": "en-US,en;q=0.9",
         "_aihot": {
-          "initialBackfillLimit": 8
+          "initialBackfillLimit": 5
         }
       },
       "tier": "T2",
       "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 180,
+      "interval_minutes": 1440,
       "tags": [
-        "个人",
-        "周刊"
+        "国际",
+        "行业媒体"
       ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+      "site_fulltext": false
     },
     {
-      "id": "rss-latent-space",
-      "name": "Latent Space",
+      "id": "business-insurance",
+      "name": "Business Insurance",
       "kind": "rss",
       "config": {
-        "feedUrl": "https://www.latent.space/feed",
+        "feedUrl": "https://www.businessinsurance.com/rss",
+        "acceptLanguage": "en-US,en;q=0.9",
         "_aihot": {
-          "initialBackfillLimit": 8
+          "initialBackfillLimit": 5
         }
       },
       "tier": "T2",
       "owner_entity_id": null,
       "participation_mode": "editorial",
-      "interval_minutes": 180,
+      "interval_minutes": 1440,
       "tags": [
-        "个人"
+        "国际",
+        "行业媒体"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "carrier-management",
+      "name": "Carrier Management",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.carriermanagement.com/feed/",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "行业媒体"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "risk-and-insurance",
+      "name": "Risk & Insurance",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://riskandinsurance.com/feed/",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "行业媒体"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "boe-prudential",
+      "name": "英格兰银行 · 审慎监管出版物",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.bankofengland.co.uk/rss/prudential-regulation-publications",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "监管"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "finma",
+      "name": "瑞士 FINMA · 新闻",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.finma.ch/en/rss/news/",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "监管"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "eiopa",
+      "name": "欧盟 EIOPA · 技术文件",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.eiopa.europa.eu/feed/68/rss_en",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "监管"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "the-digital-insurer",
+      "name": "The Digital Insurer",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.the-digital-insurer.com/feed",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "保险科技"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "coverager",
+      "name": "Coverager",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://coverager.com/feed/",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "保险科技",
+        "已暂停"
       ],
       "site_fulltext": false,
-      "syndicate_fulltext": false
+      "enabled": false
+    },
+    {
+      "id": "digital-insurance",
+      "name": "Digital Insurance",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.dig-in.com/feed?rss=true",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "保险科技"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "insurtech-ny",
+      "name": "InsurTech NY",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://insurtechny.com/feed",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "保险科技"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "socotra",
+      "name": "Socotra 博客",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://socotra.com/feed",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "保险科技"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "commercial-risk",
+      "name": "Commercial Risk",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.commercialriskonline.com/feed/",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "再保险与风险"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "the-actuary",
+      "name": "The Actuary（SOA）",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://theactuarymagazine.org/feed/",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "精算"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "soa-podcasts",
+      "name": "SOA 播客",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://soapodcasts.libsyn.com/rssfeed",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "精算",
+        "播客"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "soa-get-plugged-in",
+      "name": "SOA Get Plugged In",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://getpluggedin.libsyn.com/rss",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "精算",
+        "播客"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "aon-news",
+      "name": "Aon · 全部新闻稿",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://aon.mediaroom.com/news-releases?pagetemplate=rss",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "公司公告"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "aon-plc",
+      "name": "Aon plc · 集团新闻",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://aon.mediaroom.com/news-releases?category=819&pagetemplate=rss",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "公司公告"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "aon-health",
+      "name": "Aon · 健康福利",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://aon.mediaroom.com/news-releases?category=829&pagetemplate=rss",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "公司公告"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "aon-reinsurance",
+      "name": "Aon · 再保险",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://aon.mediaroom.com/news-releases?category=825&pagetemplate=rss",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "公司公告"
+      ],
+      "site_fulltext": false
+    },
+    {
+      "id": "accenture-insurance",
+      "name": "Accenture 保险博客",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://insuranceblog.accenture.com/feed",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": [
+        "国际",
+        "保险科技"
+      ],
+      "site_fulltext": false
     }
   ]
 }

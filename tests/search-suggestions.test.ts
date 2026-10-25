@@ -37,12 +37,10 @@ test("search carries exactly the existing topic links and five visible hot links
   }
   await sql`INSERT INTO hot_rankings (computed_at,rule_version,entries,published) VALUES (now(),'test',${sql.json(entries as never)},true)`;
   const read = () => app.inject({ method:'GET', url:'/api/site/search/suggestions' });
-  const fullTopics = (await app.inject({ method:'GET', url:'/api/site/topics' })).json();
   const first = await read();
   assert.equal(first.statusCode,200);
-  const expectedTopics = fullTopics.topics.map((t: {slug:string;name:string;group:string}) => ({slug:t.slug,name:t.name,group:t.group}));
   const expectedHot = entries.slice(0,5).map(e => ({rank:e.rank,title:e.title,to:'/story/'+e.storyPublicId}));
-  assert.deepEqual(first.json(),{topics:expectedTopics,hot:expectedHot});
+  assert.deepEqual(first.json(),{hot:expectedHot});
   assert.equal(first.headers['cache-control'],'public, max-age=30, s-maxage=30, must-revalidate');
   assert.ok(first.headers.etag);
   assert.equal((await app.inject({ method:'GET',url:'/api/site/search/suggestions',headers:{'if-none-match':String(first.headers.etag)} })).statusCode,304);

@@ -1,16 +1,14 @@
-// Discovery and static files: sitemap, llms.txt, the site's public files (robots.txt, security.txt, the web
-// manifest, the OpenAPI document), icons, the IndexNow key and the about page's contact codes.
+// Discovery and static files: sitemap, the site's public files (robots.txt, security.txt, the web
+// manifest), icons, the IndexNow key and the about page's contact codes.
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { EDITION_TIMES, SITE } from "@aihot/site";
-import { CONTACT_ALIASES, PUBLIC_INTERFACE_VERSION } from "@aihot/contracts/http-policy";
-import { PUBLIC_API_CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
+import { CONTACT_ALIASES } from "@aihot/contracts/http-policy";
 import { REPO_ROOT, config } from "@aihot/backend/config";
-import { applyPublicHeaders, sendTextWithEtag } from "../http/respond.ts";
+import { sendTextWithEtag } from "../http/respond.ts";
 import { loadSitemap } from "@aihot/backend/publication/sitemap";
-import { llmsTxt, loadLlmsAvailability } from "@aihot/backend/publication/llms";
 import { loadContact } from "@aihot/backend/site/contact";
 
 const PUBLIC = path.join(REPO_ROOT, "site/public");
@@ -31,11 +29,10 @@ const TYPES: Record<string, string> = {
 };
 
 /**
- * A public file's `{{…}}` placeholders: the site's name, address, description, tagline and locale, the
- * reports' edition times, the public interface version and the category list (JSON-escaped in JSON files). In a JSON document, an
- * `enum` or `examples` list holding "{{categories}}" becomes the list of category keys.
+ * A public file's `{{…}}` placeholders: the site's name, address, description, tagline and locale, and
+ * the reports' edition times.
  */
-function fillPlaceholders(text: string, json: boolean): string {
+function fillPlaceholders(text: string): string {
   const values: Record<string, string> = {
     siteName: SITE.name,
     siteUrl: config.siteUrl,
@@ -45,24 +42,8 @@ function fillPlaceholders(text: string, json: boolean): string {
     dailyTime: EDITION_TIMES.daily,
     weeklyTime: EDITION_TIMES.weekly,
     monthlyTime: EDITION_TIMES.monthly,
-    version: PUBLIC_INTERFACE_VERSION,
-    categoryList: PUBLIC_API_CATEGORY_KEYS.join(", "),
   };
-  const filled = text.replace(/\{\{(\w+)\}\}/g, (all, key: string) => {
-    const value = values[key];
-    if (value === undefined) return all;
-    return json ? JSON.stringify(value).slice(1, -1) : value;
-  });
-  if (!json || !filled.includes('"{{categories}}"')) return filled;
-  const walk = (node: unknown) => {
-    if (!node || typeof node !== "object") return;
-    const o = node as Record<string, unknown>;
-    for (const key of ["enum", "examples"]) if (Array.isArray(o[key]) && (o[key] as unknown[]).includes("{{categories}}")) o[key] = [...PUBLIC_API_CATEGORY_KEYS];
-    for (const v of Object.values(o)) walk(v);
-  };
-  const doc: unknown = JSON.parse(filled);
-  walk(doc);
-  return JSON.stringify(doc, null, 2);
+  return text.replace(/\{\{(\w+)\}\}/g, (all, key: string) => values[key] ?? all);
 }
 
 interface Entry {
@@ -80,14 +61,13 @@ async function loadFile(file: string, fill = false): Promise<Entry> {
   const cached = fileCache.get(file);
   if (cached && cached.mtime === s.mtimeMs) return cached;
   let body = await readFile(file);
-  if (fill && body.includes("{{")) body = Buffer.from(fillPlaceholders(body.toString("utf8"), /\.(json|webmanifest)$/.test(file)));
+  if (fill && body.includes("{{")) body = Buffer.from(fillPlaceholders(body.toString("utf8")));
   const entry = { body, etag: etagOf(body), mtime: s.mtimeMs };
   fileCache.set(file, entry);
   return entry;
 }
 
-function sendEntry(req: FastifyRequest, reply: FastifyReply, entry: Entry, opts: { type: string; cacheControl: string; publicApi?: boolean }) {
-  if (opts.publicApi) applyPublicHeaders(reply);
+function sendEntry(req: FastifyRequest, reply: FastifyReply, entry: Entry, opts: { type: string; cacheControl: string }) {
   reply.header("Content-Type", opts.type);
   reply.header("Cache-Control", opts.cacheControl);
   reply.header("ETag", entry.etag);
@@ -96,14 +76,14 @@ function sendEntry(req: FastifyRequest, reply: FastifyReply, entry: Entry, opts:
 }
 
 /** A file's bytes with an ETag (304 when it matches), its type from the extension unless given; a missing one is a 404. Modules serve their own files with it. */
-export async function sendFile(req: FastifyRequest, reply: FastifyReply, file: string, opts: { type?: string; cacheControl: string; publicApi?: boolean; fill?: boolean }) {
+export async function sendFile(req: FastifyRequest, reply: FastifyReply, file: string, opts: { type?: string; cacheControl: string; fill?: boolean }) {
   let entry;
   try {
     entry = await loadFile(file, opts.fill);
   } catch {
     return reply.code(404).type("text/plain; charset=utf-8").send("Not found");
   }
-  return sendEntry(req, reply, entry, { type: opts.type ?? TYPES[path.extname(file)] ?? "application/octet-stream", cacheControl: opts.cacheControl, publicApi: opts.publicApi });
+  return sendEntry(req, reply, entry, { type: opts.type ?? TYPES[path.extname(file)] ?? "application/octet-stream", cacheControl: opts.cacheControl });
 }
 
 export function registerStatic(app: FastifyInstance) {
@@ -118,18 +98,10 @@ export function registerStatic(app: FastifyInstance) {
     }
   });
 
-  app.get("/llms.txt", async (req, reply) => {
-    const text = llmsTxt(await loadLlmsAvailability());
-    applyPublicHeaders(reply, { cors: false });
-    // Cached like /openapi-v1.json: a release that adds an ability is described everywhere within minutes.
-    return sendTextWithEtag(req, reply, text, { etagPrefix: "llms", cacheControl: "public, max-age=300, must-revalidate", contentType: "text/plain; charset=utf-8" });
-  });
-
   // The site's public files (site/public/), placeholders filled in; one the site does not have is a 404.
   app.get("/robots.txt", (req, reply) => sendFile(req, reply, path.join(PUBLIC, "robots.txt"), { cacheControl: "public, max-age=3600", fill: true }));
   app.get("/.well-known/security.txt", (req, reply) => sendFile(req, reply, path.join(PUBLIC, ".well-known/security.txt"), { cacheControl: "public, max-age=86400", fill: true }));
   app.get("/manifest.webmanifest", (req, reply) => sendFile(req, reply, path.join(PUBLIC, "manifest.webmanifest"), { cacheControl: "public, max-age=86400, stale-while-revalidate=604800", fill: true }));
-  app.get("/openapi-v1.json", (req, reply) => sendFile(req, reply, path.join(PUBLIC, "openapi-v1.json"), { cacheControl: "public, max-age=300, must-revalidate", publicApi: true, fill: true }));
 
   // IndexNow proves the key by a file at the site root named after it (INDEXNOW_KEY).
   if (config.indexNowKey) {

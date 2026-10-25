@@ -114,9 +114,10 @@ function decodeTweetEntities(text: string): string {
 export function tweetText(t: SdTweet): string {
   // Decode before inserting expanded URLs: literal code and destination URLs keep their own bytes.
   let text = decodeTweetEntities(t.full_text ?? t.text ?? "");
-  // Expand t.co links and drop trailing media links.
+  // Expand t.co links and drop trailing media links (one per attachment).
   for (const u of t.entities?.urls ?? []) text = text.replaceAll(u.url, u.expanded_url);
-  for (const m of t.extended_entities?.media ?? t.entities?.media ?? []) text = text.replace(/\s*https:\/\/t\.co\/\w+\s*$/, "");
+  const media = t.extended_entities?.media ?? t.entities?.media ?? [];
+  for (let i = 0; i < media.length; i++) text = text.replace(/\s*https:\/\/t\.co\/\w+\s*$/, "");
   return text.trim();
 }
 

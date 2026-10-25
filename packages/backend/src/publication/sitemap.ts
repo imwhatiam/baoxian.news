@@ -2,10 +2,9 @@
 // deadline; a saved copy may bridge a restart only for the remainder of that original lifetime.
 import { mkdir, readFile, stat, utimes, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { ABOUT, ACCESS, AGENT, POLICY, SITE } from "@aihot/site";
+import { ABOUT } from "@aihot/site";
 import { config, REPO_ROOT } from "../config.ts";
 import { sha256, stableJson } from "../lib/ids.ts";
-import { loadChangelog } from "../site/meta.ts";
 import { latestHotRanking } from "./hot.ts";
 import { ITEM_FROM } from "./items.ts";
 import { sql } from "../db.ts";
@@ -13,7 +12,6 @@ import { shared } from "../lib/cache.ts";
 import { escapeXml } from "../lib/text.ts";
 import { siteUrl } from "./links.ts";
 import { evidenceCondition, listedCondition, selectedCondition, storyReportCondition } from "./scope.ts";
-import { topicPageCounts } from "./topics.ts";
 import { serverModules, type SitemapEntry } from "../modules.ts";
 
 const MAX_URLS = 45_000;
@@ -51,7 +49,6 @@ export async function loadDiscoveryEntries(at = new Date(), limits?: { stories: 
         SELECT value #>> '{}' FROM jsonb_path_query(r.content, '$.**.itemId') AS cited(value))
     ) citations ON true ORDER BY r.kind, r.key DESC`;
   const reportRevision = (kind: string) => sha256(stableJson(reports.filter((r) => r.kind === kind)));
-  const topics = await topicPageCounts(at, !limits);
   entries.push(
     { loc: "/", revision: activity?.selected ?? "", changefreq: "hourly", priority: 1 },
     { loc: "/all", revision: activity?.listed ?? "", changefreq: "hourly", priority: 0.9 },
@@ -60,19 +57,9 @@ export async function loadDiscoveryEntries(at = new Date(), limits?: { stories: 
     { loc: "/daily/archive", revision: reportRevision("daily"), changefreq: "daily", priority: 0.7 },
     { loc: "/weekly", revision: reportRevision("weekly"), changefreq: "weekly", priority: 0.7 },
     { loc: "/monthly", revision: reportRevision("monthly"), changefreq: "monthly", priority: 0.6 },
-    { loc: "/topics", revision: sha256(stableJson(topics)), changefreq: "daily", priority: 0.7 },
-    { loc: "/agent", revision: sha256(stableJson([SITE, ACCESS, AGENT])), changefreq: "weekly", priority: 0.7 },
     { loc: "/about", revision: sha256(stableJson(ABOUT)), changefreq: "monthly", priority: 0.5 },
-    { loc: "/terms", revision: sha256(stableJson([POLICY.terms, await readFile(path.join(REPO_ROOT, "site/pages/terms.md"), "utf8")])), changefreq: "monthly", priority: 0.4 },
-    { loc: "/privacy", revision: sha256(stableJson([POLICY.privacy, await readFile(path.join(REPO_ROOT, "site/pages/privacy.md"), "utf8")])), changefreq: "monthly", priority: 0.4 },
-    { loc: "/changelog", revision: sha256(stableJson(loadChangelog())), changefreq: "weekly", priority: 0.5 },
   );
   for (const r of reports) entries.push({ loc: `/${r.kind}/${r.key}`, lastmod: r.t, revision: r.revision, changefreq: "monthly", priority: 0.6 });
-  for (const t of topics) {
-    if (!t.indexable) continue;
-    entries.push({ loc: `/topics/${t.slug}`, revision: t.revision, changefreq: "daily", priority: 0.6 });
-    for (let p = 2; p <= t.pages; p++) entries.push({ loc: `/topics/${t.slug}/page/${p}`, revision: t.revision, changefreq: "weekly", priority: 0.3 });
-  }
   // A story needs listed evidence of its own. Its identity follows current readable reports as well
   // as the digest, so a correction or regrouping is visible even when latest_at does not advance.
   const stories = await sql<{ public_id: string; revision: string }[]>`

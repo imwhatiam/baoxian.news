@@ -1,7 +1,6 @@
-// Operator settings: about-page QR codes (replaced without a release), notification targets
-// (switching a group on records enabled_at so older content is never back-filled) and per-service
-// request budgets (the circuit breaker paid calls check before sending).
-import type { AdminBudget, AdminNotifyTarget, AdminSettings, BeforeJson } from "@aihot/contracts/admin";
+// Operator settings: the about page's QR code (replaced without a release) and per-service request
+// budgets (the circuit breaker paid calls check before sending).
+import type { AdminBudget, AdminSettings, BeforeJson } from "@aihot/contracts/admin";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
@@ -14,13 +13,13 @@ import { audit } from "../audit.ts";
 const MAX_QR_BYTES = 2 * 1024 * 1024;
 
 export async function replaceContactQr(input: { slot: keyof ContactSettings; data: Buffer }, actor: string) {
-  if (input.slot !== "wechatQr" && input.slot !== "feishuQr") throw new Error("unknown slot");
+  if (input.slot !== "wechatQr") throw new Error("unknown slot");
   if (input.data.length > MAX_QR_BYTES) throw new Error("二维码图片最大 2MB");
   const meta = await sharp(input.data).metadata().catch(() => null);
   if (!meta || !["png", "jpeg", "webp"].includes(meta.format ?? "")) throw new Error("需要 PNG、JPG 或 WebP 图片");
   if ((meta.width ?? 0) < 120 || (meta.height ?? 0) < 120) throw new Error("图片太小，二维码可能扫不出来");
   const ext = meta.format === "jpeg" ? "jpg" : meta.format!;
-  const name = `qr-${input.slot === "wechatQr" ? "wechat" : "feishu"}-${sha256(input.data).slice(0, 8)}.${ext}`;
+  const name = `qr-wechat-${sha256(input.data).slice(0, 8)}.${ext}`;
   const dir = path.join(config.dataDir, "uploads");
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, name), input.data);
@@ -32,29 +31,10 @@ export async function replaceContactQr(input: { slot: keyof ContactSettings; dat
   return next;
 }
 
-/** The settings page: contact QR codes, content push targets and paid-service budgets. */
+/** The settings page: the contact QR code and paid-service budgets. */
 export async function settingsOverview(): Promise<BeforeJson<AdminSettings>> {
-  const [contact, targets, budgets] = await Promise.all([loadContact(), listTargets(), listBudgets()]);
-  return { contact, targets, budgets };
-}
-
-export async function listTargets(): Promise<BeforeJson<AdminNotifyTarget>[]> {
-  return sql<BeforeJson<AdminNotifyTarget>[]>`
-    SELECT t.key, t.purpose, t.kind, t.enabled, t.enabled_at, t.config_ref, t.note, t.updated_at,
-           (SELECT count(*)::int FROM deliveries d WHERE d.target_key = t.key AND d.created_at > now() - interval '7 days') AS deliveries_7d,
-           (SELECT max(d.sent_at) FROM deliveries d WHERE d.target_key = t.key) AS last_sent_at
-    FROM notify_targets t ORDER BY t.purpose, t.key`;
-}
-
-export async function setTargetEnabled(key: string, enabled: boolean, reason: string, actor: string) {
-  if (!reason?.trim()) throw new Error("reason is required");
-  const [before] = await sql`SELECT enabled, enabled_at FROM notify_targets WHERE key = ${key}`;
-  if (!before) return null;
-  const [after] = await sql`
-    UPDATE notify_targets SET enabled = ${enabled}, enabled_at = CASE WHEN ${enabled} AND NOT enabled THEN now() ELSE enabled_at END, updated_at = now()
-    WHERE key = ${key} RETURNING key, enabled, enabled_at`;
-  await audit(actor, enabled ? "notify.enable" : "notify.disable", `notify-target:${key}`, reason, before, after);
-  return { ...after, pushEnabledHere: config.feishuContentPushEnabled };
+  const [contact, budgets] = await Promise.all([loadContact(), listBudgets()]);
+  return { contact, budgets };
 }
 
 export async function listBudgets(): Promise<BeforeJson<AdminBudget>[]> {

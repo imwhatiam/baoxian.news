@@ -10,7 +10,6 @@ import { exportTranslation, isChineseBody, ITEM_COLUMNS, ITEM_FROM, seatHolders,
 import { evidenceCondition, listedCondition } from "./scope.ts";
 import { itemUrl, siteUrl } from "./links.ts";
 import { hasItemPage, publicSourceName } from "./rules.ts";
-import { topicLinks, topicMembership } from "./topics.ts";
 
 interface DetailRow extends ItemRow {
   body_html: string | null;
@@ -18,7 +17,6 @@ interface DetailRow extends ItemRow {
   body_status: string;
   tr_html: string | null;
   tr_complete: boolean | null;
-  topics: string[];
 }
 
 export type DetailResult =
@@ -41,8 +39,7 @@ function withOutline(html: string): { html: string; outline: OutlineEntry[] } {
 
 async function loadRow(id: string): Promise<DetailRow | null> {
   const [row] = await sql<DetailRow[]>`
-    SELECT ${ITEM_COLUMNS}, a.body_html, a.body_text, a.body_status, tr.body_html AS tr_html, tr.complete AS tr_complete,
-      ${topicMembership()} AS topics
+    SELECT ${ITEM_COLUMNS}, a.body_html, a.body_text, a.body_status, tr.body_html AS tr_html, tr.complete AS tr_complete
     ${ITEM_FROM}
     WHERE p.article_id = ${id}`;
   return row ?? null;
@@ -96,7 +93,6 @@ export async function loadItemDetail(id: string, language: "zh" | "original" = "
       body: null,
       outline: [],
       relatedStories: [],
-      topics: [],
       indexable: false,
       markdownAvailable: false,
       group: null,
@@ -157,7 +153,6 @@ export async function loadItemDetail(id: string, language: "zh" | "original" = "
     body: reading.body,
     outline: reading.outline,
     relatedStories: related,
-    topics: topicLinks(row.topics),
     indexable: row.indexable,
     markdownAvailable: markdownAvailable(row),
     group,
@@ -207,5 +202,5 @@ export async function exportMarkdown(id: string): Promise<{ filename: string; bo
     if (translation) lines.push("## 正文 · 中文译文", "", bodyToMarkdown(translation, row.url), "");
     lines.push(isChineseBody(row) ? "## 正文" : "## 正文 · 原文", "", bodyToMarkdown(row.body_html, row.url), "");
   }
-  return { filename: `${SITE.mcpPrefix}-${row.id}.md`, body: lines.join("\n").replace(/\n{3,}/g, "\n\n") };
+  return { filename: `${SITE.slug}-${row.id}.md`, body: lines.join("\n").replace(/\n{3,}/g, "\n\n") };
 }

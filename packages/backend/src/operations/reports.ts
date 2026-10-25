@@ -1,7 +1,7 @@
 // The Monday source-health report for the ops chat. It goes through the same gated channel as the
-// alerts (off unless FEISHU_INTERNAL_ENABLED).
+// alerts (written to the log).
 import { sql } from "../db.ts";
-import { sendAlert } from "../notify/feishu.ts";
+import { logAlert } from "./findings.ts";
 import { serverModules } from "../modules.ts";
 import { rhythmText, SOURCE_PROBLEMS, sourceHealth, sourceHealthList } from "../sources/health.ts";
 import { dismissedFollowUps } from "./alerts.ts";
@@ -54,6 +54,6 @@ export async function sourceHealthWeekly(now = Date.now()) {
   const silent = overdue + groups.reduce((sum, g) => sum + g.unknown.length, 0);
   const followUp = counts!.failing > 0 || silent > 0 || groups.some(g => g.failing.length || g.unstable.length || g.quality.length || g.details.length);
   lines.push("", followUp ? "需要处理的话，把这条转给 AI；详情在后台“信源”与“运行”页。" : "没有需要处理的信源。");
-  await sendAlert("📊 信源周报", lines);
+  await logAlert("📊 信源周报", lines);
   return { failing, silent, overdue };
 }

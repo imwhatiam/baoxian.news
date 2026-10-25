@@ -1,15 +1,14 @@
 // Issue numbers ("第 N 期") count every existing issue of a kind; the navigation keeps only the newest
 // 400. Failure cases: the 401st issue numbered from the truncated index (the newest shows 400, older
 // ones none); the index, detail, navigation, latest page and month answers disagreeing; a new issue or
-// a revision renumbering the older ones; dailies, weeklies and monthlies sharing one count; the v1
-// report gaining the field.
+// a revision renumbering the older ones; dailies, weeklies and monthlies sharing one count.
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import type { ReportKind } from "@aihot/contracts/site";
 import { isoWeekLabel } from "@aihot/contracts/time";
 import { closeDb, sql } from "@aihot/backend/db";
-import { listReports, loadReport, loadReportMonth, loadReportNavigation, reportIndexRows, v1Daily } from "@aihot/backend/publication/reports";
+import { listReports, loadReport, loadReportMonth, loadReportNavigation, reportIndexRows } from "@aihot/backend/publication/reports";
 import { buildApp } from "../apps/api/src/app.ts";
 
 const T = tag();
@@ -83,7 +82,6 @@ test("issue numbers count the whole series across the navigation's 400-issue lim
     assert.ok(navigation.body.items.some((entry: { title?: string }) => entry.title === undefined), "closed months still leave out their titles");
     assert.equal((await loadReportNavigation("daily", key))[0]!.issueNumber, expected);
     assert.equal((await loadReportMonth("daily", key.slice(0, 7)))[0]!.issueNumber, expected);
-    assert.ok(!("issueNumber" in (await v1Daily(key))!.report), "the v1 daily keeps its fields");
   });
 
   await t.test("new issues and revisions leave older numbers alone", async () => {

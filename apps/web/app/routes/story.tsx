@@ -401,17 +401,6 @@ export default function StoryPage() {
               )}
             </RailCard>
           )}
-          {story.topics.length > 0 && (
-            <RailCard title="相关主题">
-              <div className="flex flex-wrap gap-1.5">
-                {story.topics.map((t) => (
-                  <Link viewTransition key={t.slug} to={`/topics/${t.slug}`} className="chip">
-                    {t.name}
-                  </Link>
-                ))}
-              </div>
-            </RailCard>
-          )}
           <RailCard title="事件记录" className="hidden lg:block">
             <dl className="space-y-2 text-[12.5px]">
               {story.firstReportAt && (

@@ -255,7 +255,7 @@ async function missedFacts(start: Date, end: Date): Promise<Array<{ key: string;
     FROM active JOIN fact_articles fa ON fa.fact_id = active.fact_id
     JOIN publications p ON p.article_id = fa.article_id
     JOIN ${currentSignals()} cs ON cs.article_id = fa.article_id
-    WHERE ${evidenceCondition()} AND cs.observed_at < ${end}
+    WHERE ${evidenceCondition()} AND cs.observed_at < ${end} AND cs.origin = 'source'
       AND NOT EXISTS (SELECT 1 FROM fact_articles sfa JOIN publications sp ON sp.article_id = sfa.article_id
                       WHERE sfa.fact_id = fa.fact_id AND sfa.role <> 'mention' AND sp.selected AND sp.visibility = 'public')
     GROUP BY fa.fact_id
@@ -324,6 +324,7 @@ export async function dailyEdition(date: string, start: Date, end: Date): Promis
       ? sql<{ story_id: number; participants: number }[]>`
         SELECT cs.story_id, count(DISTINCT cs.participant_key)::int AS participants FROM ${currentSignals()} cs
         WHERE cs.story_id = ANY(${storyIds}::bigint[]) AND cs.observed_at >= ${start} AND cs.observed_at < ${end}
+          AND cs.origin = 'source'
         GROUP BY cs.story_id`
       : [],
     // A report without an event of its own is a roundup when the event graph linked it to the facts it mentions.

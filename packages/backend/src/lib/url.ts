@@ -196,23 +196,28 @@ type LookupCallback = (err: NodeJS.ErrnoException | null, address: string | Arra
  * it closes the gap between the URL check and the connection (DNS rebinding). `privateHosts` as in
  * assertPublicUrl.
  */
-export function guardedLookup(hostname: string, options: { all?: boolean; family?: number } | number, callback: LookupCallback, privateHosts: readonly string[] = []): void {
-  const opts = typeof options === "number" ? { family: options } : options;
+export function guardedLookup(hostname: string, options: { all?: boolean; family?: number; hints?: number } | number | LookupCallback, callback?: LookupCallback, privateHosts: readonly string[] = []): void {
+  // net.connect 和 undici 有时只传 (hostname, callback)，把回调放在 options 位上；
+  // 按 options 处理会抛出 "callback is not a function"，连接就永远等不到结果（表现为 ETIMEDOUT）。
+  const done = typeof options === "function" ? options : callback!;
+  const opts = typeof options === "function" ? {} : typeof options === "number" ? { family: options } : options;
   const listed = privateHosts.includes(hostname.toLowerCase());
   if (!listed && blockedHostname(hostname.toLowerCase())) {
-    callback(Object.assign(new Error(`Blocked host ${hostname}`), { code: "EBLOCKED" }), opts.all ? [] : "", 0);
+    done(Object.assign(new Error(`Blocked host ${hostname}`), { code: "EBLOCKED" }), opts.all ? [] : "", 0);
     return;
   }
-  lookup(hostname, { all: true, family: opts.family ?? 0 }).then(
+  // hints 必须透传：undici 会带 ADDRCONFIG（32），丢掉它就会把本机没有路由的 IPv6 地址也返回，
+  // 连接卡在 IPv6 上直到超时（表现为 ETIMEDOUT）。
+  lookup(hostname, { all: true, family: opts.family ?? 0, hints: opts.hints }).then(
     (list) => {
       const bad = list.find((a) => refusedAddress(a.address, listed));
       if (bad || list.length === 0) {
-        callback(Object.assign(new Error(`Blocked private address for ${hostname}`), { code: "EBLOCKED" }), opts.all ? [] : "", 0);
+        done(Object.assign(new Error(`Blocked private address for ${hostname}`), { code: "EBLOCKED" }), opts.all ? [] : "", 0);
         return;
       }
-      if (opts.all) callback(null, list);
-      else callback(null, list[0]!.address, list[0]!.family);
+      if (opts.all) done(null, list);
+      else done(null, list[0]!.address, list[0]!.family);
     },
-    (err: NodeJS.ErrnoException) => callback(err, opts.all ? [] : "", 0),
+    (err: NodeJS.ErrnoException) => done(err, opts.all ? [] : "", 0),
   );
 }

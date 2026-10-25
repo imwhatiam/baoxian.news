@@ -8,7 +8,6 @@ import { loadTimeline } from "@aihot/backend/publication/timeline";
 import { loadStoryFollowups } from "@aihot/backend/publication/followups";
 import { loadGroupReports } from "@aihot/backend/publication/groups";
 import { loadItemDetail } from "@aihot/backend/publication/detail";
-import { loadStoryDetail, v1HotTopics, v1Story } from "@aihot/backend/publication/stories";
 import { candidates } from "@aihot/backend/reports/edition";
 import { composeStoryDigest, DIGEST_PROMPT_VERSION, DIGEST_SYSTEM, DigestSchema } from "@aihot/backend/events/digest";
 import { chatJson } from "@aihot/backend/providers/llm";
@@ -18,6 +17,7 @@ import { overrideFields, setVisibility } from "@aihot/backend/admin/content";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { latestHotRanking } from "@aihot/backend/publication/hot";
 import { storyTexts } from "@aihot/backend/publication/story-text";
+import { loadStoryDetail, v1Story } from "@aihot/backend/publication/stories";
 
 const key = `evidence-${tag()}`;
 const now = new Date();
@@ -47,7 +47,7 @@ async function source(suffix: string, tier: string, owner: string | null = null,
 async function story(title = "OpenAI 发布 Dots") {
   const [s] = await sql`INSERT INTO stories (public_id,title,first_report_at,latest_at,latest) VALUES (${randomUUID()},${title},${at(100)},${at(0)},'错误的生成进展') RETURNING id, public_id`;
   const [f] = await sql`INSERT INTO facts (public_id,story_id,title,subject,action,object,conditions)
-    VALUES (${`f-${randomUUID()}`},${s!.id},${title},'OpenAI','发布','Dots','自主执行任务消耗额度') RETURNING id, public_id`;
+    VALUES (${`f-${randomUUID()}`},${s!.id},${title},'中国平安','发布','Dots','自主执行任务消耗额度') RETURNING id, public_id`;
   return { storyId: Number(s!.id), storyPublicId: s!.public_id as string, factId: Number(f!.id), factPublicId: f!.public_id as string };
 }
 async function report(sourceId: string, group: Awaited<ReturnType<typeof story>>, opts: { title: string; hours: number; selected?: boolean; score?: number; role?: string }) {
@@ -67,31 +67,28 @@ async function report(sourceId: string, group: Awaited<ReturnType<typeof story>>
 }
 
 test("source tier and event ownership are separate; mentions of an entity do not establish authority", () => {
-  const row = { body_mode: "full" as const, score: 70, timeline_at: now, source_tier: "T2", publisher_role: null, owner_entity_id: null, fact_subject: "OpenAI" };
-  const org = { ...row, source_tier: "T1_5", publisher_role: "organization", owner_entity_id: "openai", score: 60 };
+  const row = { body_mode: "full" as const, score: 70, timeline_at: now, source_tier: "T2", publisher_role: null, owner_entity_id: null, fact_subject: "中国平安" };
+  const org = { ...row, source_tier: "T1_5", publisher_role: "organization", owner_entity_id: "pingan", score: 60 };
   const person = { ...org, publisher_role: "person", score: 90 };
   assert.equal(pickRepresentative([person, org]), org);
   const first = { ...row, source_tier: "T1", score: 40, first_party: false };
   assert.equal(pickRepresentative([org, first]), first, "T1 does not depend on the first_party flag");
-  for (const subject of [null, "Databricks", "OpenAI合作伙伴", "Sam Altman (@sama)"]) {
+  for (const subject of [null, "慕再", "中国平安合作伙伴", "某保险经纪 (@broker)"]) {
     assert.equal(representativePriority({ ...org, fact_subject: subject }), 3, String(subject));
   }
-  assert.equal(representativePriority({ ...org, fact_subject: "ChatGPT" }), 1, "exact configured product alias");
-  assert.equal(representativePriority({ ...org, fact_subject: "OpenAI / Anthropic" }), 1, "explicit co-subject list");
-  assert.equal(representativePriority({ ...org, owner_entity_id: "qwen", fact_subject: "Qwen Team" }), 1, "the company under another of its own names");
-  assert.equal(representativePriority({ ...org, owner_entity_id: "world-labs", fact_subject: "AMD + World Labs" }), 1);
-  assert.equal(representativePriority({ ...org, owner_entity_id: "xai", fact_subject: "SpaceXSI" }), 1, "xAI after its rename to SpaceX Super Intelligence");
-  assert.equal(representativePriority({ ...org, owner_entity_id: "xai", fact_subject: "Grok Bot" }), 1, "xAI's agent product");
-  assert.equal(representativePriority({ ...org, owner_entity_id: "meta", fact_subject: "Muse" }), 1, "Meta's agent product");
-  assert.equal(representativePriority({ ...org, fact_subject: "OpenAI + " }), 3, "incomplete subject list is not evidence");
+  assert.equal(representativePriority({ ...org, fact_subject: "平安人寿" }), 1, "the company under another of its own names");
+  assert.equal(representativePriority({ ...org, fact_subject: "中国平安 / 中国人寿" }), 1, "explicit co-subject list");
+  assert.equal(representativePriority({ ...org, owner_entity_id: "cpic", fact_subject: "太平洋保险" }), 1, "another pack alias of the same company");
+  assert.equal(representativePriority({ ...org, owner_entity_id: "sunshine", fact_subject: "阳光人寿 + 阳光财险" }), 1, "two of its own names in one list");
+  assert.equal(representativePriority({ ...org, fact_subject: "中国平安 + " }), 3, "incomplete subject list is not evidence");
   assert.equal(representativePriority({ ...org, owner_entity_id: null }), 3);
   assert.equal(representativePriority({ ...org, owner_entity_id: "unregistered-org", fact_subject: "unregistered-org" }), 3, "equal unknown strings are not verified identity");
-  assert.equal(representativePriority({ ...org, fact_subject: "OpenAI + unregistered-org" }), 3, "an unrecognized co-subject is not silently accepted");
+  assert.equal(representativePriority({ ...org, fact_subject: "中国平安 + 未登记公司" }), 3, "an unrecognized co-subject is not silently accepted");
   assert.equal(representativePriority({ ...row, first_party: true } as typeof row), 3, "the first_party flag never elevates a source");
 });
 
 test("mentions cannot choose a timeline origin, anchor, representative, or a latest-progress link", async () => {
-  const organization = await source("organization", "T1_5", "openai", "organization");
+  const organization = await source("organization", "T1_5", "pingan", "organization");
   const media = await source("media", "T2");
   const t1 = await source("t1", "T1");
   const g = await story();
@@ -378,10 +375,8 @@ test("hot exits date latest progress by current event evidence after a withdrawa
   await computeHotRanking(new Date());
   for (const hours of [2, 4]) {
     const detail = (await loadStoryDetail(g.storyId, now))!;
-    const hot = (await v1HotTopics()).items.find((entry) => entry.links.story.endsWith(g.storyPublicId))!;
     const common = (await latestHotRanking())!.entries.find((entry) => entry.storyId === g.storyId)!;
     assert.equal(detail.latestAt, at(hours).toISOString());
-    assert.equal(hot.latestAt, detail.latestAt);
     assert.equal(common.latestAt, detail.latestAt, "legacy and site share the same current ranking metadata");
     await sql`UPDATE publications SET visibility = 'withdrawn' WHERE article_id = ${ids[2]!}`;
   }

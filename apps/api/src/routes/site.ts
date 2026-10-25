@@ -10,12 +10,8 @@ import { loadTimeline } from "@aihot/backend/publication/timeline";
 import { loadStoryFollowups } from "@aihot/backend/publication/followups";
 import { loadGroupReports } from "@aihot/backend/publication/groups";
 import { hotSearchLinks, loadHotStrip } from "@aihot/backend/publication/hot";
-import { loadChangelog, siteMeta } from "@aihot/backend/site/meta";
 import { loadContact, loadMakerAvatar } from "@aihot/backend/site/contact";
 import { loadSiteStats } from "@aihot/backend/site/stats";
-import { itemAvailability } from "@aihot/backend/publication/availability";
-import { listTopicSummaries, loadTopicPage, topicBrowseLinks } from "@aihot/backend/publication/topics";
-import { registerFeedback } from "./feedback.ts";
 import { loadHot, loadStoryDetail, resolveStory } from "@aihot/backend/publication/stories";
 import { listReports, loadReport, reportNavigation, loadReportNavigation, loadReportMonth, type ReportKind } from "@aihot/backend/publication/reports";
 import { looseQuery, QueryError, sendJsonWithEtag, sendProblem } from "../http/respond.ts";
@@ -57,10 +53,6 @@ export function parseFilters(q: Record<string, string>): FilterParams {
 }
 
 export function registerSite(app: FastifyInstance) {
-  app.get("/api/site/meta", siteHandler(async (req, reply) => {
-    return sendJsonWithEtag(req, reply, siteMeta(), { etagPrefix: "meta", cacheControl: "public, max-age=60, s-maxage=60" });
-  }));
-
   app.get("/api/site/timeline", siteHandler(async (req, reply) => {
     const q = looseQuery(req);
     const filters = parseFilters(q);
@@ -122,33 +114,10 @@ export function registerSite(app: FastifyInstance) {
     return sendJsonWithEtag(req, reply, await loadSiteStats(), { etagPrefix: "stats", cacheControl: "public, max-age=300, s-maxage=300" });
   }));
 
-  app.get("/api/site/changelog", siteHandler(async (req, reply) => {
-    return sendJsonWithEtag(req, reply, loadChangelog(), { etagPrefix: "changelog", cacheControl: "public, max-age=300, s-maxage=300" });
-  }));
-
-  app.get("/api/site/items/availability", siteHandler(async (req, reply) => {
-    const ids = (looseQuery(req).ids ?? "").split(",").filter(Boolean);
-    reply.header("Cache-Control", "no-store");
-    return reply.send(await itemAvailability(ids));
-  }));
-
-  app.get("/api/site/topics", siteHandler(async (req, reply) => {
-    return sendJsonWithEtag(req, reply, await listTopicSummaries(), { etagPrefix: "topics", cacheControl: "public, max-age=300, s-maxage=300" });
-  }));
-
   app.get('/api/site/search/suggestions', siteHandler(async (req, reply) => {
-    const body: SearchSuggestions = { topics: topicBrowseLinks(), hot: await hotSearchLinks() };
+    const body: SearchSuggestions = { hot: await hotSearchLinks() };
     return sendJsonWithEtag(req, reply, body, { etagPrefix: 'suggestions', cacheControl: 'public, max-age=30, s-maxage=30, must-revalidate' });
   }));
-
-  app.get("/api/site/topics/:slug", siteHandler(async (req, reply) => {
-    const slug = (req.params as { slug: string }).slug;
-    const data = await loadTopicPage(slug, Number(looseQuery(req).page ?? 1));
-    if (!data) return sendProblem(req, reply, { status: 404, code: "not_found", detail: "topic page not found", cacheControl: "public, max-age=60" });
-    return sendJsonWithEtag(req, reply, data, { etagPrefix: "topic", cacheControl: "public, max-age=60, s-maxage=60" });
-  }));
-
-  registerFeedback(app);
 
   app.get("/api/site/hot", siteHandler(async (req, reply) => {
     const data = await loadHot();

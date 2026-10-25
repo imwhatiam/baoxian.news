@@ -8,18 +8,15 @@ import { fakeApi, startWebServer, type WebServer } from "./web-server.ts";
 let web: WebServer;
 let origin: string;
 let deadline: number;
-/** Root metadata answers only after the selected deadline has passed: a slow sibling loader. */
-let metaAfterDeadline = false;
+/** The home page's timeline answers only after the selected deadline has passed: a slow page loader. */
+let timelineAfterDeadline = false;
 const apiCookies: Array<string | undefined> = [];
 const api = fakeApi(async (url, res, req) => {
   apiCookies.push(req.headers.cookie);
-  if (url.pathname === "/api/site/meta") {
+  if (url.pathname === "/api/site/timeline") {
     // Past the deadline on the wall clock the server reads: timers run on another clock, and a CI VM
     // stepping its wall clock back mid-wait would otherwise answer before the deadline.
-    while (metaAfterDeadline && Date.now() < deadline * 1000 + 50) await new Promise((resolve) => setTimeout(resolve, deadline * 1000 + 50 - Date.now()));
-    return { changelogVersion: "2026-09-28T12:00" };
-  }
-  if (url.pathname === "/api/site/timeline") {
+    while (timelineAfterDeadline && Date.now() < deadline * 1000 + 50) await new Promise((resolve) => setTimeout(resolve, deadline * 1000 + 50 - Date.now()));
     const filters = { channel: "all", category: url.searchParams.get("category"), tag: null };
     res.setHeader("X-Accel-Expires", `@${deadline}`);
     res.setHeader("Cache-Control", "public, max-age=30, s-maxage=30");
@@ -128,7 +125,7 @@ test("admin data and actions never become public cache entries", async () => {
   await action.text();
 });
 
-test("browser freshness shares the selected deadline, including slow sibling loaders", async () => {
+test("browser freshness shares the selected deadline, including a slow page loader", async () => {
   const savedDeadline = deadline;
   try {
     deadline = Math.floor(Date.now() / 1000) + 20;
@@ -144,10 +141,10 @@ test("browser freshness shares the selected deadline, including slow sibling loa
       assert.doesNotMatch(cc, /stale/);
       await res.text();
     }
-    // The selected loader initially grants a positive TTL (at least a whole second), but root metadata
-    // finishes after it.
+    // The selected loader initially grants a positive TTL (at least a whole second), but the page's own
+    // timeline finishes after it.
     deadline = Math.floor(Date.now() / 1000) + 2;
-    metaAfterDeadline = true;
+    timelineAfterDeadline = true;
     await Promise.all(["/", "/_.data?_routes=routes%2Fhome"].map(async (pathname) => {
       const res = await fetch(origin + pathname);
       assert.equal(res.status, 200);
@@ -157,7 +154,7 @@ test("browser freshness shares the selected deadline, including slow sibling loa
     }));
   } finally {
     deadline = savedDeadline;
-    metaAfterDeadline = false;
+    timelineAfterDeadline = false;
   }
 });
 
@@ -173,19 +170,19 @@ test("a shared cache may keep an item page longer than browsers", async () => {
 // A tab opened before a page lost its loader still asks for that page's result, and its router rejects
 // a missing one before React's release recovery can run.
 test("a page without a loader still answers navigation with an empty result", async () => {
-  const res = await fetch(`${origin}/terms.data?_routes=routes%2Fterms`);
+  const res = await fetch(`${origin}/more.data?_routes=routes%2Fmore`);
   assert.equal(res.status, 200);
   const { value } = await UNSAFE_decodeViaTurboStream(res.body!, globalThis);
   const result = value as Record<string, { data: unknown }>;
-  assert.ok("routes/terms" in result, "an already open router must be able to unwrap its requested route");
-  assert.equal(result["routes/terms"]!.data, null);
+  assert.ok("routes/more" in result, "an already open router must be able to unwrap its requested route");
+  assert.equal(result["routes/more"]!.data, null);
 });
 
 test("browser caching preserves noindex and private sign-in responses", async () => {
-  const feedback = await fetch(origin + "/feedback");
-  assert.equal(feedback.status, 200);
-  assert.match(await feedback.text(), /name="robots" content="noindex/);
-  assert.equal(feedback.headers.get("Cache-Control"), "public, max-age=300, s-maxage=300, must-revalidate");
+  const noindex = await fetch(origin + "/more");
+  assert.equal(noindex.status, 200);
+  assert.match(await noindex.text(), /name="robots" content="noindex/);
+  assert.equal(noindex.headers.get("Cache-Control"), "public, max-age=300, s-maxage=300, must-revalidate");
   const login = await fetch(origin + "/admin/login");
   assert.equal(login.status, 200);
   assert.equal(login.headers.get("Cache-Control"), "private, no-store");

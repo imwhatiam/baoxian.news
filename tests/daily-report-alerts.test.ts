@@ -38,11 +38,12 @@ test("midnight preserves a missing edition; each date recovers only when its rep
   assert.deepEqual(daily((await checkAlerts(at("2026-10-07", "10:30"))).sent), []);
 });
 
-test("recent gap detection uses report activity and each edition's overdue time", async () => {
+test("recent gap detection starts at the first daily, each edition's overdue time", async () => {
+  // Attempts before the first daily was published say nothing about missing issues: the site may have
+  // had nothing scored yet. Once one exists, every later gap is still reported.
   await sql`INSERT INTO job_runs(job,started_at,status) VALUES('reports.compose',${new Date(at("2026-10-05"))},'failed')`;
   await report("2026-10-06");
-  const findings = await collectFindings(at("2026-10-07", "09:59"));
-  assert.deepEqual(daily(findings.map(f => f.key)), [key("2026-10-05")]);
+  assert.deepEqual(daily((await collectFindings(at("2026-10-07", "09:59"))).map(f => f.key)), []);
   await report("2026-09-01");
   assert.deepEqual(daily((await collectFindings(at("2026-10-07"))).map(f => f.key)),
     [1,2,3,4,5,7].map(d => key(`2026-10-0${d}`)));

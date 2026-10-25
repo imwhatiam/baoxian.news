@@ -15,12 +15,12 @@ let id: string;
 before(async () => {
   // Found, published and released a minute ago: a rolling window that ends at the reader's clock holds it.
   const minuteAgo = new Date(Date.now()-60000);
-  await sql`INSERT INTO sources(id,name,kind,tier,participation_mode,site_fulltext,syndicate_fulltext)
-    VALUES(${T},'Cache example','rss','T1','editorial',true,true)`;
+  await sql`INSERT INTO sources(id,name,kind,tier,participation_mode,site_fulltext)
+    VALUES(${T},'Cache example','rss','T1','editorial',true)`;
   id = (await upsertMaterial({ sourceId:T, url:`https://example.com/${T}`,title:'公开缓存示例',
     bodyText:'允许公开的正文。'.repeat(50),bodyStatus:'ok',via:'fetch',publishedAt:minuteAgo,discoveredAt:minuteAgo })).articleId;
   await sql`INSERT INTO analyses(article_id,input_revision,origin,relevance,category,title_zh,summary_zh,score,selected)
-    VALUES(${id},1,'rule','pass','ai-models','公开缓存示例','公开缓存摘要',90,true)`;
+    VALUES(${id},1,'rule','pass','product','公开缓存示例','公开缓存摘要',90,true)`;
   await publishArticle(id,{releasedAt:minuteAgo});
   for (const [kind,key] of [['daily','2099-10-04'],['weekly','2099-W40'],['monthly','2099-10']]) {
     const entry = {itemId:id,title:'公开缓存示例',summary:'公开缓存摘要'};
@@ -33,11 +33,7 @@ before(async () => {
 after(async()=>{await app.close();await stopBoss();await closeDb();});
 
 test('mutable content never authorizes a reader to reuse stale data beyond the withdrawal window',async(t)=>{
-  const paths = ['/api/v1/agent','/openapi-v1.json','/api/v1/items','/api/v1/dailies','/api/v1/dailies/2099-10-04',
-    '/api/v1/weeklies/2099-W40','/api/v1/monthlies/2099-10','/api/v1/selected/snapshot',
-    '/api/v1/agent/daily/2099-10-04','/api/v1/agent/weekly/2099-W40',
-    '/feed.xml','/feed/full.xml','/feed/all.xml','/feed/daily.xml','/feed/weekly.xml','/feed/monthly.xml',
-    `/items/${id}/markdown`, `/og/items/${id}.png`, `/og/posters/${id}.png`,
+  const paths = [`/items/${id}/markdown`, `/og/items/${id}.png`, `/og/posters/${id}.png`,
     '/og/reports/daily/2099-10-04.png','/og/reports/weekly/2099-W40.png','/og/reports/monthly/2099-10.png'];
   const failures:string[]=[];
   for (const url of paths) {

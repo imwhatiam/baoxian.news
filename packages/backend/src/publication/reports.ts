@@ -511,72 +511,12 @@ export async function v1Daily(date: string | "latest") {
   return (await dailyWithNotes(date))?.body ?? null;
 }
 
-export interface FeedIssue {
-  key: string;
-  generatedAt: Date;
-  headline: string | null;
-  /** A daily's lead paragraph; a weekly's or monthly's overview. */
-  leadParagraph: string | null;
-  sections: Array<{ label: string; items: Array<{ title: string; link: string }> }>;
-}
-
-/**
- * The newest issues of a kind for its RSS feed: headline, lead paragraph (a weekly's or monthly's
- * overview) and each section's entry titles with their links on this site, withdrawn ones left out.
- */
-export async function feedIssues(kind: ReportKind, limit: number): Promise<FeedIssue[]> {
-  const rows = kind === "daily"
-    ? await sql<{ key: string; generated_at: Date; content: Record<string, any> }[]>`
-      SELECT key, generated_at, jsonb_build_object(
-        'lead', content->'lead', 'leadItemId', content->'leadItemId', 'highlights', content->'highlights',
-        'sections', (SELECT coalesce(jsonb_agg(jsonb_build_object('label', s->'label', 'items',
-          (SELECT coalesce(jsonb_agg(jsonb_build_object('itemId', i->'itemId', 'title', i->'title') ORDER BY ord), '[]'::jsonb)
-           FROM jsonb_array_elements(coalesce(s->'items', '[]'::jsonb)) WITH ORDINALITY AS e(i, ord))) ORDER BY sord), '[]'::jsonb)
-          FROM jsonb_array_elements(coalesce(content->'sections', '[]'::jsonb)) WITH ORDINALITY AS x(s, sord))) AS content
-      FROM reports WHERE kind = 'daily' ORDER BY key DESC LIMIT ${limit}`
-    : await sql<{ key: string; generated_at: Date; content: Record<string, any> }[]>`
-      SELECT key, generated_at, jsonb_build_object(
-        'headline', content->'headline', 'title', content->'title', 'overview', content->'overview',
-        'leadItemId', content->'leadItemId', 'highlights', content->'highlights',
-        'themes', (SELECT coalesce(jsonb_agg(jsonb_build_object('heading', t->'heading', 'storyRefs',
-          (SELECT coalesce(jsonb_agg(jsonb_build_object('itemId', i->'itemId', 'title', i->'title') ORDER BY ord), '[]'::jsonb)
-           FROM jsonb_array_elements(coalesce(t->'storyRefs', '[]'::jsonb)) WITH ORDINALITY AS e(i, ord))) ORDER BY tord), '[]'::jsonb)
-          FROM jsonb_array_elements(coalesce(content->'themes', '[]'::jsonb)) WITH ORDINALITY AS x(t, tord))) AS content
-      FROM reports WHERE kind = ${kind} ORDER BY key DESC LIMIT ${limit}`;
-  const shape = kind === "daily" ? "daily" : "periodic";
-  const gone = await unavailableIds(rows.flatMap((r) => entriesOf(r.content, shape).map((i) => i.itemId)));
-  const leads = kind === "daily" ? await dailyLeads(rows, gone) : null;
-  return rows.map((r) => {
-    const lead = leads ? leads.get(r.key) : issueLead(r.content, shape, gone);
-    const groups: Array<{ label: unknown; items?: Array<Record<string, any>> }> = kind === "daily"
-      ? (r.content.sections ?? []).map((s: any) => ({ label: s.label, items: s.items }))
-      : (r.content.themes ?? []).map((t: any) => ({ label: t.heading, items: t.storyRefs }));
-    return {
-      key: r.key,
-      generatedAt: r.generated_at,
-      headline: lead?.title ?? null,
-      leadParagraph: kind === "daily" ? lead?.leadParagraph ?? null : periodOverview(r.content, kind, gone),
-      sections: groups.map((g) => ({
-        label: String(g.label),
-        items: (g.items ?? []).filter((i) => i.itemId && !gone.has(i.itemId)).map((i) => ({ title: String(i.title), link: itemUrl(i.itemId) })),
-      })).filter((s) => s.items.length > 0),
-    };
-  });
-}
-
-// v1 weeklies and monthlies
-
 export type PeriodKind = "weekly" | "monthly";
 
 /** A weekly's or monthly's own key and calendar days: { week, periodStart, periodEnd } or { month, … }. */
 function periodOf(kind: PeriodKind, key: string) {
   const range = kind === "weekly" ? isoWeekRange(key) : monthRange(key);
   return { ...(kind === "weekly" ? { week: key } : { month: key }), periodStart: range?.start ?? null, periodEnd: range?.end ?? null };
-}
-
-/** Whether a weekly or monthly key is a real ISO week (2026-W39) or calendar month (2026-09). */
-export function isPeriodKey(kind: PeriodKind, key: string): boolean {
-  return (kind === "weekly" ? isoWeekRange(key) : monthRange(key)) !== null;
 }
 
 /** The v1 index of weeklies or monthlies, newest first: key, days, headline and link. */

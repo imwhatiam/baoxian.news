@@ -15,14 +15,25 @@ const write = (file: string, text: string) => {
   writeFileSync(target, text);
 };
 const git = (...args: string[]) => execFileSync("git", args, { cwd: root, encoding: "utf8" });
-git("init", "-q");
-git("config", "user.email", "test@example.invalid");
-git("config", "user.name", "Test");
-write("database/migrations/0001_history.sql", "UPDATE old_table SET done = true;");
-git("add", ".");
-git("commit", "-qm", "history");
+/** The check itself reads git history, so it needs git: a database image need not carry it. */
+const NEEDS_GIT = (() => {
+  try {
+    execFileSync("git", ["--version"], { stdio: "ignore" });
+    return false;
+  } catch {
+    return "git is not installed here: run npm run test:standalone in a checkout";
+  }
+})();
+if (!NEEDS_GIT) {
+  git("init", "-q");
+  git("config", "user.email", "test@example.invalid");
+  git("config", "user.name", "Test");
+  write("database/migrations/0001_history.sql", "UPDATE old_table SET done = true;");
+  git("add", ".");
+  git("commit", "-qm", "history");
+}
 
-test("unchanged history is accepted, but edits and deletions fail", () => {
+test("unchanged history is accepted, but edits and deletions fail", { skip: NEEDS_GIT }, () => {
   assert.deepEqual(checkMigrations(root, "HEAD"), []);
   write("database/migrations/0001_history.sql", "SELECT 1;");
   assert.match(checkMigrations(root, "HEAD").join("\n"), /immutable/);
@@ -31,7 +42,7 @@ test("unchanged history is accepted, but edits and deletions fail", () => {
   git("restore", ".");
 });
 
-test("new module migrations are checked even when untracked or named below the cutoff", () => {
+test("new module migrations are checked even when untracked or named below the cutoff", { skip: NEEDS_GIT }, () => {
   const file = "modules/example/migrations/0002_hidden.sql";
   write(file, "CREATE TABLE example (id int);");
   assert.match(checkMigrations(root, "HEAD").join("\n"), /0055/);

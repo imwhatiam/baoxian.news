@@ -1,14 +1,14 @@
 import { Fragment, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { IntentLink } from "../components/ui/IntentLink";
-import { Link, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
 import type { SiteContact, SiteStats } from "@aihot/contracts/site";
-import { ABOUT, POLICY, REPORTS, SITE, subjectAfter } from "@aihot/site";
+import { ABOUT, REPORTS, SITE, subjectAfter } from "@aihot/site";
 import { apiGet, cachedPage } from "../lib/api.server";
 import { pageReuse } from "../lib/page-reuse";
 import { organizationLd, pageMeta } from "../lib/seo";
 import { Kicker } from "../components/ui/Kicker";
 import { buttonClass } from "../components/ui/Controls";
-import { IconArrowRight } from "../components/icons";
+import { IconArrowRight, IconExternal } from "../components/icons";
 import { SignalRiver, type RiverSource } from "../features/about/SignalRiver";
 import { PhoneBar } from "../components/shell/PhoneBar";
 import type { Screen } from "../components/shell/screens";
@@ -105,7 +105,7 @@ function stagesOf(stats: SiteStats | null): Stage[] {
       title: "成刊",
       figure: stats && <Figure n={stats.dailies} unit={REPORTS.metricUnits.reportsCovered} />,
       text: ABOUT.steps.publish,
-      note: "也可以用 RSS、API、MCP 订阅",
+      note: null,
     },
   ];
 }
@@ -137,7 +137,6 @@ function QrCard({ src, kind, title, note }: { src: string; kind: string; title: 
 function Maker({ maker, contact }: { maker: NonNullable<typeof ABOUT.maker>; contact: SiteContact | null }) {
   const codes = [
     contact?.wechatQr && maker.wechat ? <QrCard key="wechat" src={contact.wechatQr} kind={maker.wechat.kind} title={maker.wechat.title} note={maker.wechat.note} /> : null,
-    contact?.feishuQr && maker.feishu ? <QrCard key="feishu" src={contact.feishuQr} kind={maker.feishu.kind} title={maker.feishu.title} note={maker.feishu.note} /> : null,
   ].filter(Boolean);
   return (
     <section aria-labelledby="maker" className="mt-20 grid gap-10 xl:mt-28 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
@@ -153,17 +152,6 @@ function Maker({ maker, contact }: { maker: NonNullable<typeof ABOUT.maker>; con
           {maker.greeting.map((line) => (
             <p key={line}>{line}</p>
           ))}
-          <p className="text-ink-3">
-            它一直在改，改了什么都写在
-            <Link viewTransition to="/changelog" className="text-accent hover:underline">
-              更新日志
-            </Link>
-            里；有想法、遇到问题，去
-            <Link viewTransition to="/feedback" className="text-accent hover:underline">
-              反馈页
-            </Link>
-            告诉我。
-          </p>
         </div>
       </div>
       {codes.length > 0 && (
@@ -198,6 +186,7 @@ export default function AboutPage() {
   const sources = useMemo(() => stats?.sampleSources ?? NO_SOURCES, [stats]);
   const stages = useMemo(() => stagesOf(stats), [stats]);
   const latest = stats?.latest ?? [];
+  const builtOn = ABOUT.builtOn;
   // A pulse reaches the paper every second or so; the headline under it changes at most every 2.8s.
   const onArrive = useCallback(() => {
     const now = Date.now();
@@ -270,30 +259,26 @@ export default function AboutPage() {
 
       {ABOUT.maker && <Maker maker={ABOUT.maker} contact={contact} />}
 
-      <p className="mt-16 well rounded-card px-5 py-4 text-[13px] leading-[1.85] text-ink-3">
-        {ABOUT.copyright[0]}
-        <Link viewTransition to="/feedback" className="text-accent hover:underline">
-          反馈页
-        </Link>
-        {ABOUT.copyright[1]}
-      </p>
-
-      <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5 text-[12.5px] text-ink-4">
-        <span>{SITE.footerNote}</span>
-        <nav className="flex gap-5" aria-label="规则与隐私">
-          <Link
-            viewTransition
-            id={ABOUT.termsAnchor ?? undefined}
-            to="/terms"
-            className="transition-colors hover:text-accent"
-          >
-            {POLICY.terms.name}
-          </Link>
-          <Link viewTransition to="/privacy" className="transition-colors hover:text-accent">
-            隐私说明
-          </Link>
-        </nav>
-      </footer>
+      {builtOn && (
+        <p className="mt-16 border-t border-line pt-5 text-[13px] leading-[1.85] text-ink-4">
+          {builtOn.text.split("{project}").map((part, i) => (
+            <Fragment key={i}>
+              {i > 0 && (
+                <a
+                  href={builtOn.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-ink-2 underline decoration-line-strong underline-offset-[3px] transition-colors hover:text-accent hover:decoration-accent"
+                >
+                  {builtOn.project}
+                  <IconExternal size={11} className="ml-0.5 inline-block align-[-1px]" />
+                </a>
+              )}
+              {part}
+            </Fragment>
+          ))}
+        </p>
+      )}
     </div>
   );
 }

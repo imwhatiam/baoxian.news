@@ -45,10 +45,3 @@ test("the Markdown export names the collection time as such when the publication
   assert.ok(!undated.includes("发布时间"));
   assert.ok((await get(`/items/${ids.dated}/markdown`)).includes(`- 发布时间：${published.toISOString()}`));
 });
-
-test("RSS gives no pubDate for an item without a known publication time", async () => {
-  const feed = await get("/feed/all.xml");
-  const entry = (id: string) => feed.split("<item>").find((block) => block.includes(`>${id}</guid>`));
-  assert.ok(entry(ids.undated) && !entry(ids.undated)!.includes("<pubDate>"));
-  assert.ok(entry(ids.dated)!.includes(`<pubDate>${published.toUTCString()}</pubDate>`));
-});

@@ -1,6 +1,8 @@
 // Collection run for one source: fetch listing → filter → store material → enqueue processing.
 // A failed fetch never advances the success cursor; the source's health reflects consecutive failures.
 import { sql, type Db } from "../db.ts";
+import { beijingAt, beijingDate } from "@aihot/contracts/time";
+import { COLLECT_TIMES } from "@aihot/site";
 import { fillScheduledPublications, identityKeyFor, reuseExternalMaterialIdentities, STALE_ON_DISCOVERY_MS, upsertMaterial } from "../content/materials.ts";
 import { PresentationMismatch } from "../content/presentation.ts";
 import { HttpStatusError } from "../lib/http-fetch.ts";
@@ -248,18 +250,36 @@ async function store(sourceId: string, runId: number, candidates: CollectionCand
   return { created, revised };
 }
 
+/** At or above this the source is read once a day, on the clock (COLLECT_TIMES.daily), not a day after its last read. */
+const DAILY_INTERVAL_MINUTES = 1440;
+
+/**
+ * The next daily collection instant in Beijing time: today's `time` if it has not passed, else tomorrow's.
+ * A daily source aligns to this rather than "one interval after the last read", which walks later by the
+ * length of every run.
+ */
+export function dailyCollectAt(now: Date, time: string = COLLECT_TIMES.daily): Date {
+  const [hour, minute] = time.split(":").map(Number) as [number, number];
+  const today = beijingAt(beijingDate(now), "00:00").getTime() + (hour * 60 + minute) * 60_000;
+  return new Date(today > now.getTime() ? today : today + 24 * 3600_000);
+}
+
 /**
  * The end of a fetch run, on the run and on its source. Success marks the source healthy and due again
- * one interval later. A failure counts toward "failing" (5 in a row) and waits longer after each one,
- * up to six hours; a full budget is not the source's failure: it waits 15 minutes and counts nothing.
+ * one interval later, or at the next daily collection instant when it is read once a day. A daily
+ * source that fails is only recorded (health, last_error, the failed run) and waits for the next daily
+ * instant too: nothing retries it before then. A source read more often than daily backs off up to six
+ * hours; a full budget is not the source's failure: it waits 15 minutes and counts nothing.
  */
 async function recordFetch(db: Db, sourceId: string, runId: number, run: { found: number; created: number; detail: object | null } & ({ cursor: Record<string, unknown> } | { error: string; budget: boolean })): Promise<void> {
   const detail = run.detail ? db.json(run.detail as never) : null;
+  const nextDaily = dailyCollectAt(new Date());
   if ("cursor" in run) {
     await db`
       UPDATE sources SET last_fetch_at = now(), last_ok_at = now(), fail_count = 0, last_error = NULL,
         health = 'ok', cursor = ${db.json(run.cursor as never)}, updated_at = now(),
-        next_fetch_at = now() + make_interval(mins => interval_minutes)
+        next_fetch_at = CASE WHEN interval_minutes >= ${DAILY_INTERVAL_MINUTES} THEN ${nextDaily}
+          ELSE now() + make_interval(mins => interval_minutes) END
       WHERE id = ${sourceId}`;
     await db`UPDATE fetch_runs SET status = 'ok', finished_at = now(), found_count = ${run.found}, new_count = ${run.created},
       detail = nullif(coalesce(detail,'{}'::jsonb) || coalesce(${detail}::jsonb,'{}'::jsonb),'{}'::jsonb) WHERE id = ${runId}`;
@@ -270,7 +290,8 @@ async function recordFetch(db: Db, sourceId: string, runId: number, run: { found
       fail_count = CASE WHEN ${run.budget} THEN fail_count ELSE fail_count + 1 END,
       last_error = ${run.error},
       health = CASE WHEN ${run.budget} THEN health WHEN fail_count + 1 >= 5 THEN 'failing' ELSE 'degraded' END,
-      next_fetch_at = now() + make_interval(mins => CASE WHEN ${run.budget} THEN 15 ELSE LEAST(interval_minutes * (fail_count + 2), 360) END),
+      next_fetch_at = CASE WHEN interval_minutes >= ${DAILY_INTERVAL_MINUTES} THEN ${nextDaily}
+        ELSE now() + make_interval(mins => CASE WHEN ${run.budget} THEN 15 ELSE LEAST(interval_minutes * (fail_count + 2), 360) END) END,
       updated_at = now()
     WHERE id = ${sourceId}`;
   await db`UPDATE fetch_runs SET status = 'failed', finished_at = now(), found_count = ${run.found}, new_count = ${run.created},
@@ -497,17 +518,23 @@ export async function scheduleDueSources(): Promise<{ enqueued: number; shards: 
 const X_SHARD_MINUTES: Record<string, number> = { editorial: 30, hot_signal: 60 };
 const shardMinutes = (mode: string) => X_SHARD_MINUTES[mode] ?? 60;
 
+/** At or above this, the interval was set on purpose (daily collection) and adaptIntervals leaves it alone. */
+const MANUAL_INTERVAL_MINUTES = 720;
+
 /**
  * Daily: adapt each source's interval to its recent output (active 15 min … quiet 120 min).
  * hot_signal sources are allowed to be slower.
+ * A source already set to 12 hours or more is treated as a deliberate low-frequency setting
+ * (for example "once a day") and is left alone.
  */
 export async function adaptIntervals(): Promise<{ updated: number }> {
-  const rows = await sql<Array<Pick<SourceRow, "id" | "participation_mode" | "kind" | "config" | "cursor"> & { paid_listing: boolean; per_day: number }>>`
-    SELECT s.id, s.participation_mode, s.kind, s.config, s.cursor, coalesce(s.config->>'url', '') LIKE 'https://r.jina.ai/%' AS paid_listing,
+  const rows = await sql<Array<Pick<SourceRow, "id" | "participation_mode" | "kind" | "config" | "cursor"> & { paid_listing: boolean; per_day: number; interval_minutes: number }>>`
+    SELECT s.id, s.participation_mode, s.kind, s.config, s.cursor, s.interval_minutes, coalesce(s.config->>'url', '') LIKE 'https://r.jina.ai/%' AS paid_listing,
       (SELECT count(*) FROM articles a WHERE a.source_id = s.id AND a.discovered_at > now() - interval '7 days' AND NOT a.backfill) / 7.0 AS per_day
     FROM sources s WHERE s.enabled AND s.kind IN ('rss', 'web_list', 'json_list', 'x_search')`;
   let updated = 0;
   for (const r of rows) {
+    if (r.interval_minutes >= MANUAL_INTERVAL_MINUTES) continue;
     const perDay = Number(r.per_day);
     // Editorial sites and feeds are looked at hourly at least (they cost nothing);
     // editorial X and listings read through Jina stop at two hours (paid per call, within their budgets);

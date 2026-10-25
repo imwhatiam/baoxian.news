@@ -19,7 +19,7 @@ export function ReadingLayout({ children, aside }: { children: ReactNode; aside?
 }
 
 /**
- * Long reads (articles, terms, privacy): no sheet, the text sits on the page in a column of at most
+ * Long reads (articles): no sheet, the text sits on the page in a column of at most
  * 760px, the width Chinese magazines and news sites use (680–730px at 16–17px, about 42 characters a
  * line). From 2xl a rail on each side (the piece's facts left, notes right) keeps the page filling a
  * 16:9 screen with the column in the middle; from lg only the right rail shows, beside the centred

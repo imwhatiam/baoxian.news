@@ -12,7 +12,6 @@ import { installModules, serverModules } from "@aihot/backend/modules";
 import { MODELS } from "@aihot/backend/providers/llm";
 import { assertAccepted, paidRequest } from "@aihot/backend/providers/receipts";
 import { READER_WORDING } from "@aihot/industry/wording";
-import { resolveDelivery } from "@aihot/backend/notify/deliver";
 import { runsOverview } from "@aihot/backend/admin/runs";
 
 process.env.COLLECT_ENABLED = "false";
@@ -302,21 +301,6 @@ test("provider alerts use the same 429 spending classification as paid requests"
   }
 });
 
-// Window expiry, resending and an explicit drop are not successful delivery.
-test("failed deliveries remain open after a day and through resend until confirmed", async () => {
-  const now = Date.now();
-  await sql`INSERT INTO notify_targets(key,purpose,kind) VALUES('lifecycle','content','log')`;
-  const [d] = await sql<{ id: number }[]>`INSERT INTO deliveries(target_key,subject_kind,subject_id,dedupe_key,status,updated_at)
-    VALUES('lifecycle','test','1','1','failed',now()-interval '23 hours') RETURNING id`;
-  assert.ok((await checkAlerts(now)).open.includes("deliveries.failed"));
-  assert.ok((await checkAlerts(now+25*3600_000)).open.includes("deliveries.failed"), "age does not resend the card");
-  await sql`UPDATE deliveries SET status='sending',attempts=1,updated_at=now() WHERE id=${d!.id}`;
-  assert.ok((await checkAlerts(now+25*3600_000+60_000)).open.includes("deliveries.failed"), "starting the resend is not arrival");
-  await sql`UPDATE deliveries SET status='unknown' WHERE id=${d!.id}`;
-  await resolveDelivery(d!.id, {outcome:"sent",note:"confirmed in group"}, "test");
-  assert.ok((await checkAlerts(now+25*3600_000+120_000)).sent.includes("deliveries.failed:recovered"));
-});
-
 test("a refused provider stays open without a newer successful call", async () => {
   const now=Date.now();
   const [r]=await sql<{id:number}[]>`INSERT INTO receipts(logical_key,service,purpose,status) VALUES('lifecycle-refusal','deepseek','summarize_article','failed') RETURNING id`;
@@ -326,17 +310,6 @@ test("a refused provider stays open without a newer successful call", async () =
   assert.ok((await checkAlerts(now+2*3600_000)).open.includes("provider.refused.deepseek"), "silence cannot establish restored access");
   await sql`INSERT INTO receipt_attempts(receipt_id,attempt,service,status) VALUES(${r!.id},4,'deepseek','received')`;
   assert.ok((await checkAlerts(now+2*3600_000+60_000)).sent.includes("provider.refused.deepseek:recovered"));
-});
-
-test("a deliberately dropped delivery closes without claiming successful delivery", async () => {
-  const now = Date.now();
-  const [d] = await sql<{ id: number }[]>`INSERT INTO deliveries(target_key,subject_kind,subject_id,dedupe_key,status)
-    VALUES('lifecycle','test','drop','drop','failed') RETURNING id`;
-  await checkAlerts(now);
-  await resolveDelivery(d!.id, { outcome: "drop", note: "owner accepted the missing old card" }, "test");
-  const result = await checkAlerts(now + 60_000);
-  assert.ok(result.sent.includes("deliveries.failed:closed"));
-  assert.ok(!result.sent.includes("deliveries.failed:recovered"));
 });
 
 // Success on a different model proves neither the old allowance nor the old work recovered.

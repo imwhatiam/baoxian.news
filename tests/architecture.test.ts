@@ -57,11 +57,11 @@ test("packages never import the apps, and nothing below the admin imports it", (
   assert.deepEqual(found, [], "admin/ is the top layer: move what others need to the folder that owns it");
 });
 
-// Public routes read through the public read faces; the rest are the reader's own writes (feedback) and
-// the image proxy. Admin and ingest routes may call any backend use case.
+// Public routes read through the public read faces and the image proxy. Admin and ingest routes may call
+// any backend use case.
 const PRIVATE_ROUTES = new Set(["admin.ts", "admin-auth.ts", "ingest.ts"]);
 const PUBLIC_READS = [
-  /^publication\//, /^site\//, /^lib\//, /^config\.ts$/, /^operations\/feedback\.ts$/, /^media\//, /^jobs\/queue\.ts$/, /^modules\.ts$/,
+  /^publication\//, /^site\//, /^lib\//, /^config\.ts$/, /^media\//, /^jobs\/queue\.ts$/, /^modules\.ts$/,
 ];
 
 test("public routes read content only through the public read layer", () => {
@@ -74,15 +74,13 @@ test("public routes read content only through the public read layer", () => {
 });
 
 // Tables whose rules must not be rewritten elsewhere: the public projection and its sync ledger, paid
-// receipts, content pushes, grouping, and the audit trail. Other code reads them freely.
+// receipts, grouping, and the audit trail. Other code reads them freely.
 const OWNERS: Record<string, string> = {
   publications: "publication/", selected_ledger: "publication/", selected_state: "publication/", pool_search: "publication/",
   receipts: "providers/receipts.ts", receipt_attempts: "providers/receipts.ts",
-  deliveries: "notify/",
   facts: "events/", fact_articles: "events/", stories: "events/", story_signals: "events/", story_aliases: "events/", story_links: "events/",
   story_digests: "events/", grouping_decisions: "events/", grouping_overrides: "events/",
   audit_log: "audit.ts",
-  feedback_submission_state: "operations/feedback.ts",
 };
 
 test("the tables that carry a rule are written only by the code that owns it", () => {
@@ -148,9 +146,24 @@ const NAMED = /["']([A-Z][A-Z0-9_]+)["']/g;
 const SUBSTITUTED = /\$\{([A-Z][A-Z0-9_]+)|\{\$([A-Z][A-Z0-9_]+)\}/g;
 const COMPOSE = "docker-compose.yml";
 const DEPLOYMENT = [COMPOSE, "deploy/Caddyfile"].filter((file) => existsSync(path.join(ROOT, file)));
-const tracked = (pattern: string) => execFileSync("git", ["ls-files", "--", pattern], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
+/** Tracked files that are still there: a deletion not yet committed has nothing to read. */
+const tracked = (pattern: string) => execFileSync("git", ["ls-files", "--", pattern], { cwd: ROOT, encoding: "utf8" })
+  .split("\n").filter(Boolean).filter((file) => existsSync(path.join(ROOT, file)));
+/**
+ * Two rules below read the repository's tracked files. `npm test` runs in a checkout (CI does); the
+ * database image these tests can also run in carries no git, and a missing tool must not read as a
+ * broken rule.
+ */
+const NEEDS_GIT = (() => {
+  try {
+    execFileSync("git", ["--version"], { cwd: ROOT, stdio: "ignore" });
+    return false;
+  } catch {
+    return "git is not installed here: run npm test in a checkout";
+  }
+})();
 
-test("every environment variable the code reads is listed in a template, and every listed one is read", () => {
+test("every environment variable the code reads is listed in a template, and every listed one is read", { skip: NEEDS_GIT }, () => {
   const listed = new Set(tracked("*.env.example").flatMap((file) => assigned(file, /^#?\s*([A-Z][A-Z0-9_]+)=/gm)));
   const preset = new Set([
     ...(DEPLOYMENT.includes(COMPOSE) ? assigned(COMPOSE, /^\s+([A-Z][A-Z0-9_]+):\s/gm) : []),
@@ -177,12 +190,11 @@ const CONVERTS_BEIJING_TIME: Record<string, string> = {
   "packages/backend/src/editorial/analyze.ts": "the score input keeps the form its prompt was tuned on (whole seconds without .000)",
   "packages/backend/src/editorial/writing.ts": "a beijingDate written out, left to the next change of editorial/",
   "modules/codex-reset/web/admin-monitor.tsx": "sends a Beijing date and time typed in the admin with its zone, to the minute",
-  "site/changelog/FeatureRelease.tsx": "a changelog entry's Beijing date and time with its zone, to the minute, in dateTime",
   "clients/decisions/decisions.mjs": "installed as one file away from the repository, so it cannot import time.ts",
   "clients/watchdog/watchdog.mjs": "installed as one file away from the repository, so it cannot import time.ts",
 };
 
-test("Beijing time is converted only in contracts/time.ts", () => {
+test("Beijing time is converted only in contracts/time.ts", { skip: NEEDS_GIT }, () => {
   const code = ["*.ts", "*.tsx", "*.mjs", "*.js"].flatMap(tracked).filter((file) => !/(^|\/)tests\/|\.test\.ts$|^reference\//.test(file));
   const lines = (file: string) => readFileSync(path.join(ROOT, file), "utf8").split("\n")
     .map((line, i) => ({ at: `${file}:${i + 1}`, line: line.replace(/\s\/\/.*$/, "") }))

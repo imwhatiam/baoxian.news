@@ -25,15 +25,15 @@ test('inherited object names are nonexistent share cards', async () => {
 });
 
 test('ordinary share cards keep their PNG and conditional cache responses', async () => {
-  const response = await app.inject('/og/pages/topics.png');
+  const response = await app.inject('/og/pages/about.png');
   assert.equal(response.statusCode, 200, response.body);
   assert.equal(response.headers['content-type'], 'image/png');
   assert.deepEqual([...response.rawPayload.subarray(0, 8)], [137,80,78,71,13,10,26,10]);
-  const cached = await app.inject({ url: '/og/pages/topics.png', headers: { 'if-none-match': response.headers.etag! } });
+  const cached = await app.inject({ url: '/og/pages/about.png', headers: { 'if-none-match': response.headers.etag! } });
   assert.equal(cached.statusCode, 304);
 });
 
-test('decoded controls in topic paths return 404 without injecting response headers', async () => {
+test('decoded controls in unknown paths return 404 without injecting response headers', async () => {
   for (const slug of ['abc%0D%0AX-Evil:1', 'abc%0A', 'abc%0D', 'abc%0A%09X-Evil:1', '%0AX-Evil:1']) {
     for (const suffix of ['', '/page/1', '/page/2']) {
       const response = await fetch(`${web.origin}/topics/${slug}${suffix}`, { redirect: 'manual' });
@@ -42,10 +42,4 @@ test('decoded controls in topic paths return 404 without injecting response head
       assert.equal(response.headers.get('location'), null);
     }
   }
-});
-
-test('ordinary first topic page keeps its permanent redirect', async () => {
-  const response = await fetch(`${web.origin}/topics/openai/page/1`, { redirect: 'manual' });
-  assert.equal(response.status, 308);
-  assert.equal(response.headers.get('location'), '/topics/openai');
 });

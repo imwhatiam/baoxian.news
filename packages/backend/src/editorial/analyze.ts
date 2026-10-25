@@ -131,6 +131,8 @@ const FactSchema = z
 export const StructureSchema = z.object({
   scope: z.enum(["single", "composite", "unknown"]).catch("unknown"),
   category: z.enum(CATEGORY_KEYS).nullable().catch(null),
+  // Only 大童 items carry it: the second category the item also belongs to (industry or product).
+  alsoCategory: z.enum(CATEGORY_KEYS).nullable().catch(null),
   tags: z.array(z.string()).max(12).catch([]),
   subjects: z.array(z.string()).max(6).catch([]),
   fact: FactSchema,
@@ -182,7 +184,10 @@ export function normalizeStructure(data: z.infer<typeof StructureSchema>, a: Ana
     }).slice(0, 4),
   };
   return {
-    category: data.category, tags: normalizeTags(data.tags),
+    category: data.category,
+    // Only a 大童 item has a second home; anything else is a model slip and is dropped.
+    alsoCategory: data.category === "dator" && data.alsoCategory && data.alsoCategory !== "dator" ? data.alsoCategory : null,
+    tags: normalizeTags(data.tags),
     subjects: [...new Set(data.subjects.map((s) => s.trim().toLowerCase()).filter((s) => s in ENTITIES))],
     scope, fact,
   };
@@ -526,6 +531,7 @@ export function normalizeAnalysis(run: AnalysisRun) {
     scoreRefused: run.scores?.refused ?? false,
     threshold,
     category: run.structure?.category ?? null,
+    alsoCategory: run.structure?.alsoCategory ?? null,
     tags,
     subjects,
     titleZh,
@@ -568,6 +574,7 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
     ...(w ? { writer: w.kind, writerModel: w.model, itemType: w.itemType ?? null, authorRole: w.authorRole ?? null } : {}),
     ...(w?.identityGuard?.outcome === "fallback" ? { identityGuard: w.identityGuard } : {}),
     scope: out.scope, fact: out.fact,
+    ...(out.alsoCategory ? { alsoCategory: out.alsoCategory } : {}),
   };
   const committed = await sql.begin(async (tx) => {
     const [current] = await tx<{ revision: number }[]>`SELECT revision FROM articles WHERE id = ${articleId} FOR UPDATE`;

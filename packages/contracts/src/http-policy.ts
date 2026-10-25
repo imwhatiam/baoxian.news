@@ -1,29 +1,8 @@
 // Outward HTTP behaviour, defined once: CORS, the public interface version, redirects and which process
 // owns a path, the engine's and then those of the site's modules. The API server and the web server both
 // read this module.
-import { ABOUT, POLICY, SITE } from "@aihot/site";
+import { ABOUT, SITE } from "@aihot/site";
 import { MODULES } from "@aihot/site/modules";
-
-/** CORS for /api/v1/* and /openapi-v1.json. */
-export const PUBLIC_API_CORS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-  "Access-Control-Allow-Headers": "Accept, If-None-Match, If-Modified-Since",
-  "Access-Control-Expose-Headers": [
-    "ETag",
-    "Last-Modified",
-    "Retry-After",
-    "X-Request-Id",
-    "Deprecation",
-    "Sunset",
-    "Link",
-    ...Object.keys(POLICY.terms.headers ?? {}),
-  ].join(", "),
-  "Access-Control-Max-Age": "86400",
-};
-
-/** MCP and the v1 OpenAPI carry one public version, the site's (site/site.ts); it only goes up. */
-export const PUBLIC_INTERFACE_VERSION = SITE.interfaceVersion;
 
 export const NO_STORE = "no-store";
 
@@ -44,21 +23,10 @@ export interface RedirectRule {
 const ENGINE_REDIRECTS: RedirectRule[] = [
   {
     match: "regex",
-    path: "^/(all|about|agent|changelog|feedback|starred|more|privacy|terms)/+$",
+    path: "^/(all|about|more)/+$",
     status: 301,
     location: "/$1",
     keepQuery: true,
-  },
-  {
-    match: "regex",
-    path: "^/(feed|rss|rss\\.xml|atom\\.xml)$",
-    status: 301,
-    location: "/feed.xml",
-    keepQuery: true,
-    why: "RSS reader aliases",
-    // A subscription address may carry its reader's own query, which the Location repeats: the redirect
-    // never enters shared caches.
-    headers: { "Cache-Control": "private, no-store" },
   },
   { match: "prefix", path: "/sources", status: 302, location: "/admin/sources*", why: "admin bookmarks" },
 ];
@@ -94,21 +62,15 @@ export function resolveRedirect(pathname: string, search: string): RedirectDecis
   return null;
 }
 
-/** OAuth discovery probes from MCP clients: a cheap 404, never a rendered page. */
+/** OAuth discovery probes: a cheap 404, never a rendered page. */
 export const OAUTH_PROBE_PATHS = [
   "/.well-known/oauth-protected-resource",
-  "/.well-known/oauth-protected-resource/api/mcp",
   "/.well-known/oauth-authorization-server",
-  "/.well-known/oauth-authorization-server/api/mcp",
   "/.well-known/openid-configuration",
-  "/.well-known/openid-configuration/api/mcp",
-  "/api/mcp/.well-known/oauth-protected-resource",
-  "/api/mcp/.well-known/oauth-authorization-server",
-  "/api/mcp/.well-known/openid-configuration",
 ];
 
 /** Root addresses of the about page's contact codes that were linked from outside (ABOUT.maker), served by routes/static.ts. */
-export const CONTACT_ALIASES = (["wechat", "feishu"] as const).flatMap((slot) => {
+export const CONTACT_ALIASES = (["wechat"] as const).flatMap((slot) => {
   const file = ABOUT.maker?.[slot]?.alias;
   return file ? [{ slot, file }] : [];
 });
@@ -117,15 +79,12 @@ const literal = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * Paths served by the api process; everything else is the web process. The web server proxies these to
- * the api (a reverse proxy in front may also route them straight to it). Patterns are anchored so page
- * paths such as /feedback never fall into /feed.
+ * the api (a reverse proxy in front may also route them straight to it). Patterns are anchored so a
+ * page path such as /feeds never falls into /feed.
  */
 const ENGINE_API_PATHS: RegExp[] = [
   /^\/api\//,
-  /^\/feed(\.xml|\/.*)?$/,
-  /^\/(rss|rss\.xml|atom\.xml)$/,
-  /^\/openapi-v1\.json$/,
-  /^\/(llms\.txt|robots\.txt|sitemap\.xml|manifest\.webmanifest)$/,
+  /^\/(robots\.txt|sitemap\.xml|manifest\.webmanifest)$/,
   /^\/sitemaps\//,
   /^\/\.well-known\//,
   /^\/(favicon\.ico|icon\.png|icon-192\.png|apple-icon\.png|logo\.svg)$/,
@@ -147,10 +106,6 @@ function tables() {
 }
 
 /** The engine's api paths, then the site's modules'. */
-export function apiOwnedPatterns(): readonly RegExp[] {
-  return tables().apiPaths;
-}
-
 export function isApiOwned(pathname: string): boolean {
   return tables().apiPaths.some((re) => re.test(pathname));
 }

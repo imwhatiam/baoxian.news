@@ -4,13 +4,12 @@
 //   today — money at risk or only the owner can act: sent at once, repeated at most daily, recovery reported.
 //   later — other follow-ups: one 09:00 message a day, meant to be handed to the AI. A source's follow-up is
 //           closed on its own: a fix removes it, and one judged not worth fixing is closed with a reason.
-// Delivery goes through sendAlert (ops chat, internal-chat fallback; off unless FEISHU_INTERNAL_ENABLED).
+// Findings are written to the process log; the site has no external notification channel.
 import { addDays, beijingAt, beijingDate, beijingDay, beijingStamp, isValidDate } from "@aihot/contracts/time";
 import { ALERTS, EDITION_TIMES } from "@aihot/site";
 import { audit } from "../audit.ts";
 import { sql } from "../db.ts";
-import { agentHandoffs, closeAgentWake, wakeAgent } from "../notify/agent.ts";
-import { duration, formatAlert, formatRecovery, sendAlert, type Finding, type Level } from "../notify/feishu.ts";
+import { duration, formatAlert, formatRecovery, logAlert, type Finding, type Level } from "./findings.ts";
 import { stepsOnService } from "../editorial/models.ts";
 import { backupConfigured } from "./backup.ts";
 import { GROUPING_WARN_AFTER_MS, waitingSelectedNews } from "./grouping.ts";
@@ -26,9 +25,18 @@ const collecting = () => process.env.COLLECT_ENABLED === "true";
 const modelsOn = () => process.env.MODEL_CALLS_ENABLED === "true";
 /**
  * How long the site may go without a new article before it counts as stalled (ALERT_QUIET_MINUTES, else
- * the site's own setting; small source lists are quieter). At most a day: the check looks one day back.
+ * the site's own setting; small source lists are quieter). A site collected once a day is quiet for most
+ * of it by design, so this round's threshold never sits below the slowest editorial source's interval.
  */
-const QUIET_MINUTES = Math.min(Number(process.env.ALERT_QUIET_MINUTES || ALERTS.quietMinutes), 1440);
+const QUIET_MINUTES = Number(process.env.ALERT_QUIET_MINUTES || ALERTS.quietMinutes);
+
+/** The configured threshold, or the slowest source's own interval plus an hour of slack, whichever is longer. */
+async function quietMinutes(): Promise<number> {
+  const [row] = await sql<{ longest: number | null }[]>`
+    SELECT max(interval_minutes) AS longest FROM sources
+    WHERE enabled AND kind NOT IN ('external', 'mp_account') AND participation_mode IN ('editorial', 'hot_signal')`;
+  return Math.max(QUIET_MINUTES, (row?.longest ?? 0) + 60);
+}
 
 /** One check: the problems it finds now. `open` retains ongoing incidents, read once per round. */
 type Check = (now: number, open: AlertState) => Promise<Finding[]>;
@@ -42,14 +50,12 @@ const CHECKS: Check[] = [
   dailyReportFindings,
   // Money, and things only the owner can do
   providerFindings,
-  refusedDeliveries,
   backupAge,
   upstreamFindings,
   moduleAlerts,
   // Follow-ups
   sourceFollowUps,
   unknownOutcomes,
-  agentHandoffs,
   waitingQueues,
   moduleFollowUps,
 ];
@@ -66,9 +72,12 @@ export async function collectFindings(now = Date.now(), open?: AlertState): Prom
 // a site that stops changing. Its persisted backlog survives worker restarts and paused valves.
 async function contentCollection(now: number, open: AlertState): Promise<Finding[]> {
   if (!collecting() && !open["content.collect"]) return [];
+  const quiet = await quietMinutes();
+  // The lookback reaches a day past the threshold, so the message can still name the last article.
   const [last] = await sql<{ at: Date | null }[]>`SELECT max(a.discovered_at) AS at FROM articles a
-    JOIN sources s ON s.id = a.source_id WHERE s.participation_mode = 'editorial' AND a.discovered_at > now() - interval '1 day'`;
-  if (last?.at && now - last.at.getTime() <= QUIET_MINUTES * 60_000) return [];
+    JOIN sources s ON s.id = a.source_id WHERE s.participation_mode = 'editorial'
+    AND a.discovered_at > now() - ${quiet + 1440} * interval '1 minute'`;
+  if (last?.at && now - last.at.getTime() <= quiet * 60_000) return [];
   // A site without an enabled source has nothing to collect.
   const [anySource] = await sql`SELECT 1 FROM sources WHERE enabled AND participation_mode = 'editorial' LIMIT 1`;
   if (!anySource) return [];
@@ -79,7 +88,7 @@ async function contentCollection(now: number, open: AlertState): Promise<Finding
     impact: last?.at ? `读者看不到新文章：最后一篇收录于 ${beijingStamp(last.at)}` : "读者看不到新文章：一天内没有收录任何文章",
     heals: ALERTS.usualFlow ? `没有，${ALERTS.usualFlow}` : "没有",
     action: "尽快发起一次维护处理",
-    detail: `editorial articles.discovered_at 超过 ${QUIET_MINUTES} 分钟没有新值（热度信号单独评估）；查 sources.schedule、出网代理与采集失败`,
+    detail: `editorial articles.discovered_at 超过 ${quiet} 分钟没有新值（热度信号单独评估）；查 sources.schedule、出网代理与采集失败`,
     since: last?.at ?? undefined,
   }];
 }
@@ -143,28 +152,6 @@ async function contentProcessing(now: number, open: AlertState): Promise<Finding
   }];
 }
 
-// Content-group pushes the Feishu webhook refused (a removed bot, a changed address); nothing resends them.
-async function refusedDeliveries(now: number, open: AlertState): Promise<Finding[]> {
-  const incident = open["deliveries.failed"];
-  const since = new Date((incident ? Date.parse(incident.since) : now) - 86400_000);
-  const [refused] = await sql<{ n: number; target: string | null; response: string | null }[]>`
-    SELECT count(*)::int AS n, max(t.note) AS target, left(max(d.response), 200) AS response FROM deliveries d JOIN notify_targets t ON t.key = d.target_key
-    WHERE d.updated_at > ${since}
-      AND (d.status = 'failed' OR (${!!incident} AND (d.status = 'unknown' OR (d.status IN ('pending','sending') AND d.attempts > 0))))
-      AND NOT EXISTS (SELECT 1 FROM audit_log a WHERE a.action = 'delivery.drop'
-        AND a.subject = 'delivery:' || d.id AND a.created_at >= d.updated_at)`;
-  if (!refused!.n) return [];
-  return [{
-    key: "deliveries.failed",
-    level: "today",
-    title: "飞书内容群有推送没发出去",
-    impact: `${refused!.n} 条通知尚未确认送达${refused!.target ?? "内容群"}`,
-    heals: "不会自动重发",
-    action: "转给 AI 处理；如果推送机器人被移出了群，需要你把它加回去",
-    detail: refused!.response ?? "",
-  }];
-}
-
 async function backupAge(now: number): Promise<Finding[]> {
   if (!backupConfigured()) return [];
   const [b] = await sql<{ value: { at: string; uploaded: boolean; filesError?: string } }[]>`SELECT value FROM settings WHERE key = 'backup.last'`;
@@ -214,18 +201,16 @@ async function sourceFollowUps(now: number): Promise<Finding[]> {
   }))));
 }
 
-/** Paid requests and content-group pushes whose outcome is not known yet. */
+/** Paid requests whose outcome is not known yet. */
 async function unknownOutcomes(): Promise<Finding[]> {
   const out: Finding[] = [];
 
-  const [r] = await sql<{ receipts: number; services: string | null; deliveries: number }[]>`
+  const [r] = await sql<{ receipts: number; services: string | null }[]>`
     SELECT (SELECT count(*)::int FROM receipts WHERE ${awaitingRelease()}) AS receipts,
-           (SELECT string_agg(DISTINCT service || '/' || purpose, '、') FROM receipts WHERE ${awaitingRelease()}) AS services,
-           (SELECT count(*)::int FROM deliveries WHERE status = 'unknown') AS deliveries`;
+           (SELECT string_agg(DISTINCT service || '/' || purpose, '、') FROM receipts WHERE ${awaitingRelease()}) AS services`;
   if (r!.receipts > 0) {
     out.push({ key: "receipts.unknown", level: "later", title: `${r!.receipts} 个付费请求的结果尚未确认`, detail: `${r!.services}；后台“运行”页查看实际影响；仍阻塞内容的请求需核对或按已有授权恢复` });
   }
-  if (r!.deliveries > 0) out.push({ key: "deliveries.unknown", level: "later", title: `${r!.deliveries} 条飞书内容群推送不确定是否送达`, detail: "后台“运行”页核对群里有没有，再标记或重发" });
   return out;
 }
 
@@ -358,9 +343,12 @@ async function dailyReportFindings(now: number, open: AlertState): Promise<Findi
   const [activity] = await sql<{ first_report: string | null; first_attempt: Date | null }[]>`
     SELECT (SELECT min(key) FROM reports WHERE kind = 'daily') AS first_report,
            (SELECT min(started_at) FROM job_runs WHERE job = 'reports.compose') AS first_attempt`;
-  const starts = [activity?.first_report, activity?.first_attempt && beijingDate(activity.first_attempt)]
-    .filter((date): date is string => !!date && isValidDate(date)).sort();
-  const start = starts[0] ?? today;
+  const firstAttempt = activity?.first_attempt ? beijingDate(activity.first_attempt) : null;
+  // Days before the first daily was published are not missing issues: a site may have collected for a
+  // while with nothing scored yet. Only when no daily exists is the first attempt the evidence of a schedule.
+  const start = activity?.first_report && isValidDate(activity.first_report) ? activity.first_report
+    : firstAttempt && isValidDate(firstAttempt) ? firstAttempt
+    : today;
   // New gaps and announced editions alike are followed for the scan window; settleDailies closes older ones.
   const from = dailyScanFrom(now);
   const dates = new Set(Object.keys(open).map(dailyDate).filter((date): date is string => !!date && date >= from));
@@ -396,9 +384,8 @@ async function settleDailies(open: AlertState, found: Set<string>, now: number):
       missing.add(key);
       continue;
     }
-    await sendAlert(`${date} 的日报没能补出，停止提醒`, [`读者看不到 ${date} 的日报；缺期从 ${beijingStamp(new Date(open[key]!.since))} 起，已超出七天的检查范围`]);
+    await logAlert(`${date} 的日报没能补出，停止提醒`, [`读者看不到 ${date} 的日报；缺期从 ${beijingStamp(new Date(open[key]!.since))} 起，已超出七天的检查范围`]);
     sent.push(`${key}:expired`);
-    await closeAgentWake(key);
     delete open[key];
   }
   return { missing, sent };
@@ -421,7 +408,7 @@ export async function checkAlerts(now = Date.now()) {
     if (open?.sentAt && now - Date.parse(open.sentAt) <= REPEAT_MS[f.level]) continue;
     const since = open ? new Date(open.since) : (f.since ?? new Date(now));
     const msg = formatAlert(f, since, now, !!open?.sentAt);
-    await sendAlert(msg.title, msg.lines);
+    await logAlert(msg.title, msg.lines);
     state[f.key] = { ...open, title: f.title, since: since.toISOString(), sentAt: new Date(now).toISOString(), ...(!open || open.handoff ? { handoff: true as const } : {}) };
     sent.push(f.key);
   }
@@ -431,25 +418,19 @@ export async function checkAlerts(now = Date.now()) {
   for (const [key, open] of Object.entries(state)) {
     if (found.has(key) || dailies.missing.has(key)) continue;
     if (!open.sentAt) {
-      await closeAgentWake(key);
       delete state[key];
       continue;
     }
-    const [dropped] = key === "deliveries.failed" ? await sql`SELECT count(*)::int AS n FROM deliveries d
-      WHERE d.status='failed' AND d.updated_at>${new Date(Date.parse(open.since)-86400_000)}
-        AND EXISTS(SELECT 1 FROM audit_log a WHERE a.action='delivery.drop' AND a.subject='delivery:' || d.id AND a.created_at>=d.updated_at)` : [];
     const msg = formatRecovery(open.title, new Date(open.since), now);
-    if (dropped?.n) await sendAlert(`已结束跟进：${open.title}`, [`${dropped.n} 条旧通知已决定不再补发，未确认送达`]);
-    else await sendAlert(msg.title, msg.lines);
-    sent.push(`${key}:${dropped?.n ? "closed" : "recovered"}`);
-    await closeAgentWake(key);
+    await logAlert(msg.title, msg.lines);
+    sent.push(`${key}:recovered`);
     delete state[key];
   }
   await sql`INSERT INTO settings (key, value, updated_by) VALUES ('alerts.state', ${sql.json(state as never)}, 'alerts')
             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`;
   // Revisit every open incident: a crash between saving the owner's alert and dispatching cannot lose it.
   // The durable handoff deduplicates by occurrence, independently from hourly owner reminders.
-  for (const f of all) if (f.level !== "later" && state[f.key]) await wakeAgent({ ...f, since: new Date(state[f.key]!.since) }, now, !!state[f.key]!.handoff);
+
   return { open: Object.keys(state), sent };
 }
 
@@ -512,6 +493,6 @@ export async function sendDigest(now = Date.now()) {
   const items = found.filter((f) => !dismissed[f.key]);
   const lines = items.map((f, i) => `${i + 1}. ${f.title}${f.detail ? `\n   ${f.detail}` : ""}`);
   if (!lines.length) return { items: 0 };
-  await sendAlert(`📋 系统日报 · ${beijingDay(now)}`, ["以下事项需要跟进，具体影响见各条说明；可把整条转给 AI 处理。", ...lines]);
+  await logAlert(`📋 系统日报 · ${beijingDay(now)}`, ["以下事项需要跟进，具体影响见各条说明；可把整条转给 AI 处理。", ...lines]);
   return { items: lines.length };
 }

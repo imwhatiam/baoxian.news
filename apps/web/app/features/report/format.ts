@@ -1,7 +1,7 @@
 // Names, dates and grouping for daily, weekly and monthly reports.
-import { REPORT_NAMES, type ReportNavigationEntry, type ReportKind } from "@aihot/contracts/site";
+import type { ReportNavigationEntry, ReportKind } from "@aihot/contracts/site";
 import { beijingDate, beijingWeekday, isoWeekLabel, isoWeekRange, monthDay } from "@aihot/contracts/time";
-import { EDITION_WHEN, REPORTS, SITE, subjectAfter } from "@aihot/site";
+import { EDITION_WHEN, REPORTS, subjectAfter } from "@aihot/site";
 import { RELEASE } from "@aihot/industry/taxonomy";
 import { weekdayShort } from "../../lib/format.ts";
 
@@ -13,9 +13,6 @@ export function kindFromPath(pathname: string): ReportKind {
   if (pathname.startsWith("/monthly")) return "monthly";
   return "daily";
 }
-
-/** The kind's RSS feed, announced in the page head so a reader given the page finds it. */
-export const feedLink = (kind: ReportKind) => ({ tagName: "link", rel: "alternate", type: "application/rss+xml", title: `${SITE.name} ${REPORT_NAMES[kind]}`, href: `/feed/${kind}.xml` }) as const;
 
 export function reportPath(kind: ReportKind, key: string): string {
   return `${KIND_PATH[kind]}/${key}`;

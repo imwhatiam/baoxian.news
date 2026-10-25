@@ -95,7 +95,6 @@ The same thing happens once: the official site posts it, ten outlets repeat it, 
 | **Daily, weekly and monthly reports** | A daily briefing every day (08:00 by default), compiled from the day's top stories by rule: one entry per story, a story already covered returns only when it has news, and no model is called. A weekly report every Monday and a monthly report on the 1st (10:00 and 10:30 by default), compiled from the dailies; the model writes only the overview and section introductions. Change the times in `EDITION_TIMES` in `site/site.ts` |
 | **Topics and search** | Topic pages of three kinds: companies, directions and content formats; search over headlines and summaries, and full-text relevance search |
 | **Reading preferences** | Light and dark appearance, with the site's default font or the browser's default font. Saved items and reading preferences stay on the device and can be exported and imported as a backup |
-| **For agents** | RSS (selection, everything, full text, daily, weekly, monthly), a public API, MCP, Agent Markdown and `llms.txt`: the same content for people and for agents |
 | **Admin** | Source management and trial fetches, content diagnostics and manual score corrections, selection evaluation, a separate model for each step, budget breakers for paid services, run history and alerts |
 
 ## A quick look
@@ -126,8 +125,6 @@ Open <http://localhost:3000>. The admin is at `/admin`, and the admin password i
 
 For machines without Node, servers in mainland China, domains and HTTPS, or running directly on Linux or macOS without Docker (WSL2 on Windows), see [Deployment](docs/deploy.md).
 
-Once the site is up, `/agent` lets you copy how to connect over MCP, RSS or the API; agents that can only read web pages start from `/api/v1/agent`; the API description is at `/openapi-v1.json`.
-
 ## Make it your field
 
 The easiest way: open your coding agent (Claude Code or Codex both work), give it this repository, and say:
@@ -143,13 +140,13 @@ Nearly everything to change is in the [`site/`](site/) and [`industry/`](industr
 
 | File | What to change |
 |---|---|
-| `site/site.ts` | Site name, field terms, publishing times, home page copy, about page, the wording on items and reports, the categories of the public interfaces |
-| `industry/taxonomy.ts`, `industry/topics.json` | Categories, tags, topics |
+| `site/site.ts` | Site name, field terms, publishing times, home page copy, about page, the wording on items and reports, the categories recorded in the sync ledger |
+| `industry/taxonomy.ts` | Categories, tags, companies and bodies |
 | `industry/sources.json` | The sources imported on first start |
 | `industry/prompts/` | The selection standard and the writing requirements. **Your field's know-how goes here** |
 | `industry/selection.ts` | Selection thresholds |
 | `site/models.ts` | Which model each step uses by default (optional: otherwise every step uses the one in `.env`) |
-| `site/brand/`, `site/pages/`, `site/public/`, `site/changelog.json` | Icons and logo, terms of use and privacy notice, files served from the site root such as `robots.txt`, the changelog |
+| `site/brand/`, `site/public/` | Icons and logo, files served from the site root such as `robots.txt` |
 | `modules/` | Features the framework doesn't have and only your site needs, as modules; see “模块” in [Architecture](docs/architecture.md#模块) |
 
 What is most worth your time is the scoring rubric (`industry/prompts/selection-score.md`) and the thresholds: take one or two hundred items you labelled yourself, run them through `scripts/eval-selection.ts`, see how accurately it selects, and go back and adjust. How to do it is in [Selection and calibration](docs/selection.md).

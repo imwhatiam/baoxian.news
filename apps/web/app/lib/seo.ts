@@ -156,7 +156,7 @@ export function siteLd() {
       "@type": "Dataset",
       "@id": `${base}/#dataset`,
       name: `${SITE.name} — ${withSubject("行业动态数据集")}`,
-      description: `${subjectAfter("持续更新的中文", "行业动态")}：每条附中文摘要、评分与原文出处，${subjectAfter("另有每日精选与", "日报")}，可通过 RSS 与公开 API 获取。`,
+      description: `${subjectAfter("持续更新的中文", "行业动态")}：每条附中文摘要、评分与原文出处，${subjectAfter("另有每日精选与", "日报")}。`,
       url: base,
       inLanguage: SITE.locale,
       isAccessibleForFree: true,
@@ -164,15 +164,6 @@ export function siteLd() {
       keywords: SITE.keywords,
       creator: orgRef(),
       publisher: orgRef(),
-      distribution: [
-        { "@type": "DataDownload", name: "精选 RSS", encodingFormat: "application/rss+xml", contentUrl: `${base}/feed.xml` },
-        { "@type": "DataDownload", name: "全部动态 RSS", encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/all.xml` },
-        { "@type": "DataDownload", name: `${withSubject("日报")} RSS`, encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/daily.xml` },
-        { "@type": "DataDownload", name: `${withSubject("周报")} RSS`, encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/weekly.xml` },
-        { "@type": "DataDownload", name: `${withSubject("月报")} RSS`, encodingFormat: "application/rss+xml", contentUrl: `${base}/feed/monthly.xml` },
-        { "@type": "DataDownload", name: "公开 API v1", encodingFormat: "application/json", contentUrl: `${base}/api/v1/items` },
-        { "@type": "DataDownload", name: "OpenAPI", encodingFormat: "application/json", contentUrl: `${base}/openapi-v1.json` },
-      ],
     },
   ];
 }
@@ -282,38 +273,3 @@ export function storyLd(story: StoryDetail) {
   };
 }
 
-/** A topic page: the collection, when a report last reached it, and the lists its parts show. */
-export function topicLd(input: {
-  path: string;
-  name: string;
-  description: string;
-  dateModified: string | null;
-  lists: Array<{ name: string; entries: Array<{ title: string; href: string | null }> }>;
-}) {
-  const base = siteUrl();
-  const url = `${base}${input.path}`;
-  // Entries name their event page when they have one (event pages are indexable, most article pages are not).
-  const lists = input.lists.filter((l) => l.entries.length > 0).map((l) => ({
-    "@type": "ItemList",
-    name: `${input.name} · ${l.name}`,
-    numberOfItems: l.entries.length,
-    itemListElement: l.entries.map((e, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      name: e.title,
-      ...(e.href?.startsWith("/story/") ? { url: `${base}${e.href}` } : {}),
-    })),
-  }));
-  return {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    "@id": `${url}#collection`,
-    url,
-    name: input.name,
-    description: input.description,
-    inLanguage: SITE.locale,
-    isPartOf: { "@id": `${base}/#website` },
-    ...(input.dateModified ? { dateModified: input.dateModified } : {}),
-    ...(lists.length > 0 ? { mainEntity: lists.length === 1 ? lists[0] : lists } : {}),
-  };
-}

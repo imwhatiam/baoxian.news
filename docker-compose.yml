@@ -84,6 +84,20 @@ services:
       api:
         condition: service_started
 
+  # Renders JavaScript pages (Angular/React/Vue) the collector cannot read directly. Internal only:
+  # no published port, api/worker reach it at http://renderer:3000/render. Off by default; start it with
+  # `docker compose --profile render up -d renderer`, or put COMPOSE_PROFILES=render in .env.
+  renderer:
+    profiles: ["render"]
+    build: ./renderer
+    image: aihot-renderer
+    restart: unless-stopped
+    environment:
+      RENDER_ALLOW_HOSTS: ${RENDER_ALLOW_HOSTS:-}
+      RENDER_TIMEOUT_MS: ${RENDER_TIMEOUT_MS:-30000}
+      RENDER_CONCURRENCY: ${RENDER_CONCURRENCY:-2}
+    shm_size: "1gb"
+
   caddy:
     image: caddy:2-alpine
     profiles: ["https"]

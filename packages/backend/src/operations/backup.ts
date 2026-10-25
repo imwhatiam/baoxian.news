@@ -10,7 +10,6 @@ import { promisify } from "node:util";
 import { beijingDate, beijingWeekday } from "@aihot/contracts/time";
 import { config } from "../config.ts";
 import { sql } from "../db.ts";
-import { screenshotsForwarded } from "./feedback.ts";
 
 const run = promisify(execFile);
 const KEEP_LOCAL = 3;
@@ -106,9 +105,9 @@ export async function runBackup(now = new Date()) {
   // An empty archive only when there is nothing to keep. A failure to read or pack existing files is
   // tried once more and otherwise reported: the database dump still ships, but the run fails.
   const kept: string[] = [];
-  // Feedback screenshots only waiting to be forwarded are not kept (once forwarded, only the Feishu image
+  // Feedback screenshots only waiting to be forwarded are not kept (once forwarded, only the external image
   // key remains). Without the internal chat they stay here for good, referred to as local: files.
-  for (const d of screenshotsForwarded() ? ["uploads"] : ["uploads", "feedback-screenshots"]) {
+  for (const d of ["uploads"]) {
     const info = await stat(path.join(config.dataDir, d)).catch((error: NodeJS.ErrnoException) => {
       if (error.code === "ENOENT") return null;
       throw error;

@@ -1,7 +1,6 @@
 // Stories (events) and the hot ranking through the public read layer. The website sees heat values;
 // v1 and MCP only see ranks and counts.
 import type { HeatPoint, HotResponse, StoryDetail, StoryReportView } from "@aihot/contracts/site";
-import { SITE } from "@aihot/site";
 import { sql } from "../db.ts";
 import { shared } from "../lib/cache.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
@@ -12,8 +11,7 @@ import { compositeCondition, evidenceCondition, listedCondition, storyReportCond
 import { publicSourceName } from "./rules.ts";
 import { latestHotRanking, rankingExtras } from "./hot.ts";
 import { storyTexts } from "./story-text.ts";
-import { topicsOfStory } from "./topics.ts";
-import { itemUrl, storyUrl, v1StoryApiUrl, v1StoryUrl } from "./links.ts";
+import { itemUrl, storyUrl } from "./links.ts";
 
 export type StoryLookup = { kind: "found"; storyId: number; publicId: string } | { kind: "merged"; target: string } | { kind: "not_found" };
 
@@ -161,7 +159,7 @@ export async function loadStoryDetail(storyId: number, now = new Date()): Promis
     ? await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM ${currentSignals()} cs WHERE story_id = ${storyId} AND source_id = ANY(${behind}::text[])
                                   AND observed_at > ${now}::timestamptz - interval '48 hours' AND observed_at <= ${now}`
     : [{ n: 0 }];
-  const [related, topics, texts] = await Promise.all([relatedStories(storyId, now), topicsOfStory(storyId, now), storyTexts([storyId], now)]);
+  const [related, texts] = await Promise.all([relatedStories(storyId, now), storyTexts([storyId], now)]);
   const text = texts.get(storyId)!;
   // Historical stories without listed evidence retain their latest readable report.
   const latest = text.latest ?? latestReport;
@@ -194,7 +192,6 @@ export async function loadStoryDetail(storyId: number, now = new Date()): Promis
     timeline: reports.slice(0, 100).map(reportView),
     heat: heat.map((h): HeatPoint => ({ hour: h.hour.toISOString(), heat: Number(h.heat), participants: h.participants })),
     related: related.map((r) => ({ publicId: r.public_id, title: r.title, relation: r.relation })),
-    topics,
   };
 }
 
@@ -283,29 +280,6 @@ export async function loadHot(): Promise<HotResponse> {
 
 // v1 shapes (ranks and counts only; no heat values)
 
-export async function v1HotTopics() {
-  const ranking = await latestHotRanking();
-  const items = (ranking?.entries ?? []).map((e) => {
-    const links = {
-      aihot: e.representativeItemId ? itemUrl(e.representativeItemId) : storyUrl(e.storyPublicId),
-      original: e.representativeUrl ?? storyUrl(e.storyPublicId),
-      story: v1StoryUrl(e.storyPublicId),
-    };
-    return {
-      rank: e.rank,
-      id: e.representativeItemId ?? e.storyPublicId,
-      title: e.title,
-      source: { name: e.representativeSource ?? e.sourceNames[0] ?? SITE.name },
-      links,
-      sourceCount: e.sourceCount,
-      signalCount: e.signalCount,
-      participantCount: e.participantCount,
-      sourceNames: e.sourceNames,
-      latestAt: new Date(e.latestAt).toISOString(),
-    };
-  });
-  return { schemaVersion: 1 as const, count: items.length, items };
-}
 
 export async function v1Story(storyId: number) {
   const now = new Date();
@@ -317,7 +291,7 @@ export async function v1Story(storyId: number) {
   const latest = text.latest ?? latestReport;
   const latestAt = latest.at;
   const neighbors = (await relatedStories(storyId, now)).map((r) => {
-    const links = { aihot: storyUrl(r.public_id), api: v1StoryApiUrl(r.public_id) };
+    const links = { aihot: storyUrl(r.public_id) };
     return { publicId: r.public_id, title: r.title, relation: r.relation, links };
   });
   return {

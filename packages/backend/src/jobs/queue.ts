@@ -21,9 +21,9 @@ export interface JobData {
   "sources.fetch": { sourceId: string; force?: boolean };
   "sources.fetch-x": { key: string; sourceIds: string[] };
   "sources.mp": { sourceId: string; reason?: "schedule" | "manual" };
-  "notify.selected": { articleId: string; attempt?: number };
   "publication.republish-source": { sourceId: string };
   "media.prepare": { articleId: string } | { url: string; mode: string };
+  "heat.probe": { articleId: string };
 }
 export type QueueName = keyof JobData;
 
@@ -35,9 +35,9 @@ export const QUEUES = {
   fetchSource: "sources.fetch",
   fetchXShard: "sources.fetch-x",
   mpCheck: "sources.mp",
-  notifySelected: "notify.selected",
   republishSource: "publication.republish-source",
   prepareMedia: "media.prepare",
+  heatProbe: "heat.probe",
 } as const satisfies Record<string, QueueName>;
 
 export type QueueOptions = NonNullable<Parameters<PgBoss["createQueue"]>[1]>;
@@ -50,10 +50,12 @@ const QUEUE_OPTIONS: Record<QueueName, QueueOptions> = {
   [QUEUES.digest]: { policy: "short", retryLimit: 3, retryDelay: 60, retryBackoff: true, expireInSeconds: 900 },
   [QUEUES.fetchSource]: { policy: "short", retryLimit: 0, expireInSeconds: 600 },
   [QUEUES.fetchXShard]: { policy: "short", retryLimit: 0, expireInSeconds: 900 },
-  [QUEUES.mpCheck]: { policy: "short", retryLimit: 3, retryDelay: 60, retryBackoff: true, expireInSeconds: 600 },
-  [QUEUES.notifySelected]: { policy: "short", retryLimit: 0, expireInSeconds: 300 },
+  // A failed account read is recorded and waits for the next daily check: nothing retries it before then.
+  [QUEUES.mpCheck]: { policy: "short", retryLimit: 0, expireInSeconds: 600 },
   [QUEUES.republishSource]: { policy: "short", retryLimit: 2, retryDelay: 60, expireInSeconds: 3600 },
   [QUEUES.prepareMedia]: { policy: "short", retryLimit: 1, retryDelay: 120, expireInSeconds: 600 },
+  // 一次渲染约 7 秒；Bing 会限流，所以失败只重试一次，剩下的交给下一条新闻。
+  [QUEUES.heatProbe]: { policy: "short", retryLimit: 1, retryDelay: 300, expireInSeconds: 300 },
 };
 
 const ensured = new Set<string>();
