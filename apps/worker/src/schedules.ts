@@ -23,10 +23,10 @@ import { sourceHealthWeekly } from "@aihot/backend/operations/reports";
 const collecting = process.env.COLLECT_ENABLED === "true";
 
 const ENGINE_SCHEDULES: Scheduled[] = [
-  { name: "content.sweep", cron: "*/5 * * * *", run: sweepUnprocessed },
+  { name: "content.sweep", cron: "*/10 * * * *", run: sweepUnprocessed },
   // Full-text translations of newly selected items (model calls; off with MODEL_CALLS_ENABLED=false).
-  { name: "content.translate", cron: "*/5 * * * *", run: () => translatePending() },
-  { name: "hot.rank", cron: "*/5 * * * *", run: () => computeHotRanking() },
+  { name: "content.translate", cron: "*/10 * * * *", run: () => translatePending() },
+  { name: "hot.rank", cron: "*/10 * * * *", run: () => computeHotRanking() },
   { name: "hot.snapshot", cron: "2 * * * *", run: () => snapshotHeat() },
   { name: "stories.links", cron: "12 * * * *", run: linkRelatedStories },
   // Every issue that is due and not written yet, each from its edition time (site/site.ts EDITION_TIMES)
@@ -47,7 +47,8 @@ const ENGINE_SCHEDULES: Scheduled[] = [
   { name: "reports.source-health", cron: "0 9 * * 1", missed: "once", run: () => sourceHealthWeekly() },
   ...(collecting
     ? [
-        { name: "sources.schedule", cron: "* * * * *", run: () => scheduleDueSources() },
+        // Every source is read once a day or less, so a due source waits at most these five minutes.
+        { name: "sources.schedule", cron: "*/5 * * * *", run: () => scheduleDueSources() },
         { name: "sources.adapt-intervals", cron: "20 4 * * *", run: adaptIntervals },
         // X accounts quiet for a day: a renamed one is followed to its new handle (SocialData, paid per lookup).
         { name: "sources.x-renames", cron: "50 4 * * *", missed: "once" as const, run: () => followXRenames() },
@@ -56,7 +57,8 @@ const ENGINE_SCHEDULES: Scheduled[] = [
       ]
     : []),
   // WeChat official accounts through Dajiala (paid), each once per its interval; only with its key.
-  ...(collecting && dajialaConfigured() ? [{ name: "sources.mp-reconcile", cron: "*/15 * * * *", run: () => scheduleMpReconcile() }] : []),
+  // An account is due on a whole day at 03:00, so an hourly pass is as soon as any of them can be read.
+  ...(collecting && dajialaConfigured() ? [{ name: "sources.mp-reconcile", cron: "0 * * * *", run: () => scheduleMpReconcile() }] : []),
 ];
 
 export async function registerSchedules(boss: PgBoss) {
