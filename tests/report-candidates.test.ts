@@ -47,18 +47,21 @@ async function selected(label: string, timelineAt: Date, releasedAt: Date): Prom
 }
 
 test("reports assign delayed and boundary releases to the period readers first see them", async () => {
-  const onTime = await selected("on-time", editionAt("daily", "2020-01-02", -120), editionAt("daily", "2020-01-02", -60));
-  const delayed = await selected("delayed", editionAt("daily", "2020-01-02", -60), editionAt("daily", "2020-01-02", 120));
-  const atBoundary = await selected("at-boundary", editionAt("daily", "2020-01-02", -60), editionAt("daily", "2020-01-02"));
-  const groupedBefore = await analyzed("grouped-before", editionAt("daily", "2020-01-02", -120));
-  await publishArticle(groupedBefore, { now: editionAt("daily", "2020-01-02", -120) });
-  await sql`UPDATE articles SET grouping_status = 'complete', grouped_at = ${editionAt("daily", "2020-01-02", -60)} WHERE id = ${groupedBefore}`;
-  await publishArticle(groupedBefore, { now: editionAt("daily", "2020-01-02", -50) });
-  const groupedLate = await analyzed("grouped-late", editionAt("daily", "2020-01-02", -120));
-  await publishArticle(groupedLate, { now: editionAt("daily", "2020-01-02", -120) }); // waits for identity confirmation
-  await sql`UPDATE articles SET grouping_status = 'complete', grouped_at = ${editionAt("daily", "2020-01-02", -10)} WHERE id = ${groupedLate}`;
-  const boundary = editionAt("daily", "2020-01-02");
-  const previous = new Set((await candidates(editionAt("daily", "2020-01-01"), boundary)).map((c) => c.itemId));
+  // A day's window ends at its collection (03:00), so on time, delayed and at the boundary are measured from there.
+  const cutoff = editionAt("daily", "2020-01-02", -5 * 3600);
+  const at = (seconds: number) => new Date(cutoff.getTime() + seconds * 1000);
+  const onTime = await selected("on-time", at(-120), at(-60));
+  const delayed = await selected("delayed", at(-60), at(120));
+  const atBoundary = await selected("at-boundary", at(-60), at(0));
+  const groupedBefore = await analyzed("grouped-before", at(-120));
+  await publishArticle(groupedBefore, { now: at(-120) });
+  await sql`UPDATE articles SET grouping_status = 'complete', grouped_at = ${at(-60)} WHERE id = ${groupedBefore}`;
+  await publishArticle(groupedBefore, { now: at(-50) });
+  const groupedLate = await analyzed("grouped-late", at(-120));
+  await publishArticle(groupedLate, { now: at(-120) }); // waits for identity confirmation
+  await sql`UPDATE articles SET grouping_status = 'complete', grouped_at = ${at(-10)} WHERE id = ${groupedLate}`;
+  const boundary = cutoff;
+  const previous = new Set((await candidates(at(-86400), boundary)).map((c) => c.itemId));
 
   assert.equal(previous.has(onTime), true);
   assert.equal(previous.has(groupedBefore), true);
@@ -68,7 +71,7 @@ test("reports assign delayed and boundary releases to the period readers first s
   await publishArticle(groupedLate, { now: editionAt("daily", "2020-01-02", 10) });
   const [release] = await sql<{ visible_after: Date }[]>`SELECT visible_after FROM publications WHERE article_id = ${groupedLate}`;
   assert.equal(release!.visible_after.toISOString(), editionAt("daily", "2020-01-02", 10).toISOString());
-  const next = new Set((await candidates(boundary, editionAt("daily", "2020-01-03"))).map((c) => c.itemId));
+  const next = new Set((await candidates(boundary, at(86400))).map((c) => c.itemId));
   assert.equal(next.has(onTime), false);
   assert.equal(next.has(groupedBefore), false);
   for (const id of [delayed, atBoundary, groupedLate]) assert.equal(next.has(id), true);
@@ -145,10 +148,13 @@ for (const lock of ["article", "fact seat", "report snapshot"] as const) {
 }
 
 test("daily composition waits for a pre-cutoff release to commit instead of losing it between issues", async (t) => {
-  const id = await analyzed("commit-after-cutoff", editionAt("daily", "2020-01-04", -120));
-  await publishArticle(id, { now: editionAt("daily", "2020-01-04", -120) });
-  await sql`UPDATE articles SET grouping_status = 'complete', grouped_at = ${editionAt("daily", "2020-01-04", -60)} WHERE id = ${id}`;
-  t.mock.timers.enable({ apis: ["Date"], now: editionAt("daily", "2020-01-04", -1) });
+  // The window ends at the day's collection (03:00): the release is inside it but commits after the issue starts.
+  const cutoff = editionAt("daily", "2020-01-04", -5 * 3600);
+  const at = (seconds: number) => new Date(cutoff.getTime() + seconds * 1000);
+  const id = await analyzed("commit-after-cutoff", at(-120));
+  await publishArticle(id, { now: at(-120) });
+  await sql`UPDATE articles SET grouping_status = 'complete', grouped_at = ${at(-60)} WHERE id = ${id}`;
+  t.mock.timers.enable({ apis: ["Date"], now: at(-1) });
   const written = gate<number>();
   const commit = gate();
   const publication = sql.begin(async (tx) => {
@@ -166,13 +172,15 @@ test("daily composition waits for a pre-cutoff release to commit instead of losi
     commit.open();
     await publication;
     await report;
-    await assert.rejects(composeDaily("2020-01-05"), /nothing judged/);
+    // The next day's window holds nothing at all: it is a quiet issue, and the article is not in it.
+    await composeDaily("2020-01-05");
     const reports = await sql<{ key: string; content: { sections: Array<{ items: Array<{ itemId: string }> }> } }[]>`
       SELECT key, content FROM reports WHERE kind = 'daily' AND key IN ('2020-01-04', '2020-01-05')`;
     const hasItem = (key: string) => reports.find((r) => r.key === key)!.content.sections.some((s) => s.items.some((item) => item.itemId === id));
     assert.equal(hasItem("2020-01-04"), true);
-    assert.equal(reports.some((r) => r.key === "2020-01-05"), false);
-    assert.equal((await candidates(editionAt("daily", "2020-01-04"), editionAt("daily", "2020-01-05"))).some((c) => c.itemId === id), false);
+    assert.equal(reports.some((r) => r.key === "2020-01-05"), true);
+    assert.equal(hasItem("2020-01-05"), false);
+    assert.equal((await candidates(cutoff, at(86400))).some((c) => c.itemId === id), false);
   } finally {
     commit.open();
     await Promise.allSettled([publication, report]);

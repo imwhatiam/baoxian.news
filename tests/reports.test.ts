@@ -1,6 +1,7 @@
 // Reports: a scheduled run that starts late still writes the issue it was due for, never one whose
-// window is still open; a daily whose window nothing was judged in is refused rather than published as a
-// quiet day; and an older weekly that froze no summaries shows the cited articles' public summaries.
+// window is still open; a daily whose window holds nothing at all is published as a quiet day, while
+// one whose window holds articles none of which were judged is refused; and an older weekly that froze
+// no summaries shows the cited articles' public summaries.
 import { editionAt, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
@@ -10,7 +11,7 @@ import { stopBoss } from "@aihot/backend/jobs/queue";
 import { publishArticle } from "@aihot/backend/publication/publish";
 import { loadReport } from "@aihot/backend/publication/reports";
 import { composeDaily, dueDaily, dueMonthly, dueWeekly } from "@aihot/backend/reports/compose";
-import { SITE } from "@aihot/site";
+import { REPORTS, SITE } from "@aihot/site";
 
 const T = tag();
 const SOURCE = `test-reports-${T}`;
@@ -31,11 +32,20 @@ test("a late run writes the issue that was due, not today's", () => {
   assert.equal(dueMonthly(editionAt("monthly", "2027-01-15")), "2026-12");
 });
 
-test("a daily with nothing judged in its window is refused, not published as a quiet day", async () => {
+test("a daily whose window holds nothing at all is published as a quiet day", async () => {
   const date = "2098-01-15";
+  assert.equal((await composeDaily(date)).entries, 0);
+  const [row] = await sql<{ content: { lead: { title: string } } }[]>`SELECT content FROM reports WHERE kind = 'daily' AND key = ${date}`;
+  assert.equal(row?.content.lead.title, REPORTS.quiet.title);
+});
+
+test("a daily whose window holds articles none of which were judged is refused", async () => {
+  const date = "2098-01-16";
+  const source = `test-reports-unjudged-${T}`;
+  await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, next_fetch_at) VALUES (${source}, 'Unjudged', 'rss', 'T1', 'editorial', '2100-01-01')`;
+  // Published inside the window (which ends at the day's collection) and stored, but judging never ran on it.
+  await upsertMaterial({ sourceId: source, url: `https://example.com/unjudged-${T}`, title: `U ${T}`, bodyText: "b", bodyStatus: "ok", via: "fetch", publishedAt: editionAt("daily", date, -12 * 3600), discoveredAt: editionAt("daily", date, -12 * 3600) });
   await assert.rejects(composeDaily(date), /nothing judged/);
-  const [row] = await sql`SELECT 1 FROM reports WHERE kind = 'daily' AND key = ${date}`;
-  assert.equal(row, undefined);
 });
 
 test("a weekly that froze no summaries shows the articles' public summaries", async () => {

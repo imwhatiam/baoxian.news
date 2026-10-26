@@ -4,7 +4,7 @@
 // dailies and a model only writes its overview and introductions, from the brief in the industry pack
 // (industry/prompts/report-period*.md).
 import { z } from "zod";
-import { EDITION_TIMES, REPORTS, SITE } from "@aihot/site";
+import { COLLECT_TIMES, EDITION_TIMES, REPORTS, SITE } from "@aihot/site";
 import { PLAIN_TERMS, RELEASE } from "@aihot/industry/taxonomy";
 import { promptText, promptVersion } from "../editorial/prompts.ts";
 import { modelFor } from "../editorial/models.ts";
@@ -81,19 +81,46 @@ function windowPoint(at: Date): string {
 }
 
 /**
- * Daily report for Beijing date D covers the 24 hours up to the site's edition time on D (EDITION_TIMES).
- * Its most important entry leads, in its own words, and the next three are today's highlights. A window
- * the editors judged with nothing new in it still has its issue: no entries, and a lead that says so
- * (REPORTS.quiet).
+ * Whether the window holds anything at all, backfilled archive excluded. An empty window is a quiet day:
+ * nothing was published to judge, so the issue still runs (REPORTS.quiet). A window that does hold
+ * material none of which was judged points at judging instead, and that run fails to be caught up.
+ */
+async function windowHoldsArticles(start: Date, end: Date): Promise<boolean> {
+  const [row] = await sql<{ n: number }[]>`
+    SELECT count(*)::int AS n FROM articles
+    WHERE NOT backfill AND timeline_at >= ${start} AND timeline_at < ${end}`;
+  return row!.n > 0;
+}
+
+/**
+ * The last collection instant at or before `at`. A daily's window ends here rather than at its edition
+ * time: content published between the day's collection and the edition is not in the database yet, so a
+ * window reaching past the collection would drop it from every issue — it would fall inside this day's
+ * window only after that issue was written, and before the next day's.
+ */
+function lastCollectionAt(at: Date): Date {
+  const [hour, minute] = COLLECT_TIMES.daily.split(":").map(Number) as [number, number];
+  const day = beijingAt(beijingDate(at), "00:00").getTime() + (hour * 60 + minute) * 60_000;
+  return new Date(day <= at.getTime() ? day : day - 86400_000);
+}
+
+/**
+ * Daily report for Beijing date D covers the 24 hours up to the day's collection (COLLECT_TIMES), which
+ * is also what makes every hour of it readable: the collection has already stored what was published in
+ * it. Its most important entry leads, in its own words, and the next three are today's highlights. A
+ * window the editors judged with nothing new in it still has its issue: no entries, and a lead that says
+ * so (REPORTS.quiet).
  */
 export async function composeDaily(date: string, reason?: string): Promise<{ key: string; entries: number }> {
   const previous = await savedReport("daily", date);
   if (previous && reason === undefined) return { key: date, entries: previous.entries };
-  const end = beijingAt(date, EDITION_TIMES.daily);
+  const end = lastCollectionAt(beijingAt(date, EDITION_TIMES.daily));
   const start = new Date(end.getTime() - 86400000);
   const edition = await dailyEdition(date, start, end);
-  // Nothing judged in the window is a failure upstream, not a quiet day: the run fails and is caught up later.
-  if (edition.entries.length === 0 && edition.stats.judgedReports === 0) throw new Error(`daily ${date}: nothing judged in its window`);
+  // A quiet day (nothing published in the window) gets its issue; material that went unjudged is the
+  // failure, and the run fails so it is caught up later.
+  if (edition.entries.length === 0 && edition.stats.judgedReports === 0 && await windowHoldsArticles(start, end))
+    throw new Error(`daily ${date}: nothing judged in its window`);
   const issue = arrangeDaily(edition.entries);
   const [lead, ...rest] = issue.main;
   const content = {
@@ -194,9 +221,9 @@ export function fitted(text: string, max: number): string | null {
 async function composePeriod(kind: "weekly" | "monthly", key: string, startDate: string, endDateInclusive: string, reason: string | undefined) {
   const previous = await savedReport(kind, key);
   if (previous && reason === undefined) return { key, entries: previous.entries };
-  // The dailies' windows run from the edition time the day before the first to that time on the last.
-  const start = beijingAt(addDays(startDate, -1), EDITION_TIMES.daily);
-  const end = beijingAt(endDateInclusive, EDITION_TIMES.daily);
+  // The dailies' windows run from the day-before collection of the first day to the collection on the last.
+  const start = lastCollectionAt(beijingAt(addDays(startDate, -1), EDITION_TIMES.daily));
+  const end = lastCollectionAt(beijingAt(endDateInclusive, EDITION_TIMES.daily));
   const { entries, issues, hasEntries } = await periodEntries(startDate, endDateInclusive);
   const top = entries.slice(0, PERIOD_EVENTS[kind]);
   if (!top.length) {
@@ -300,11 +327,13 @@ const nextMonth = (label: string) => {
  * The scheduled run (every half hour): every issue due by `now` that does not exist yet, oldest first.
  * The newest one appears at the first run after it falls due (above); a long stop or an older gap is
  * filled too. A kind with no issue yet only gets its latest due one. An issue that fails does not hold
- * up the others; at most `limit` issues are written per run, the next run continues.
+ * up the others; at most `limit` issues with entries are written per run, the next run continues (a
+ * quiet issue carries no entries and costs nothing, so it does not use up that limit).
  */
 export async function composeDueReports(now = new Date(), limit = 8): Promise<{ generated: string[]; failed: string[] }> {
   const generated: string[] = [];
   const failed: string[] = [];
+  let counted = 0;
   const kinds: Array<{ kind: ReportKind; due: string; next: (k: string) => string; end: (k: string) => string; compose: (k: string) => Promise<unknown> }> = [
     { kind: "daily", due: dueDaily(now), next: (k) => addDays(k, 1), end: (k) => k, compose: composeDaily },
     { kind: "weekly", due: dueWeekly(now), next: nextWeek, end: (k) => isoWeekRange(k)!.end, compose: composeWeekly },
@@ -319,9 +348,13 @@ export async function composeDueReports(now = new Date(), limit = 8): Promise<{ 
     for (let key = first; key <= k.due; key = k.next(key)) {
       if (have.has(key)) continue;
       if (k.kind !== "daily" && (!firstDaily || k.end(key) < firstDaily)) continue;
-      if (shutdownSignal.signal.aborted || generated.length >= limit) break kinds;
+      if (shutdownSignal.signal.aborted || counted >= limit) break kinds;
       try {
-        if (await k.compose(key) !== null) generated.push(`${k.kind}:${key}`);
+        const written = await k.compose(key) as { key: string; entries: number } | null;
+        if (written !== null) {
+          generated.push(`${k.kind}:${key}`);
+          if (written.entries > 0) counted += 1;
+        }
       } catch (error) {
         // An issue interrupted by the stop is not a failure: it is written after the restart.
         if (shutdownSignal.signal.aborted) break kinds;
