@@ -1,6 +1,6 @@
 // What the site's modules add to the web pages (site/modules/index.ts).
-import { defineWebModule, type WebModule } from "@aihot/web/modules";
-import { IconTimeline } from "@aihot/web/components/icons";
+import { defineWebModule, type WebModule } from "@baoxian-news/web/modules";
+import { IconTimeline } from "@baoxian-news/web/components/icons";
 
 export const WEB_MODULES: readonly WebModule[] = [
   defineWebModule({

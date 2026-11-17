@@ -1,8 +1,8 @@
 // Collection run for one source: fetch listing → filter → store material → enqueue processing.
 // A failed fetch never advances the success cursor; the source's health reflects consecutive failures.
 import { sql, type Db } from "../db.ts";
-import { beijingAt, beijingDate } from "@aihot/contracts/time";
-import { COLLECT_TIMES } from "@aihot/site";
+import { beijingAt, beijingDate } from "@baoxian-news/contracts/time";
+import { COLLECT_TIMES } from "@baoxian-news/site";
 import { fillScheduledPublications, identityKeyFor, reuseExternalMaterialIdentities, STALE_ON_DISCOVERY_MS, upsertMaterial } from "../content/materials.ts";
 import { PresentationMismatch } from "../content/presentation.ts";
 import { HttpStatusError } from "../lib/http-fetch.ts";
@@ -94,7 +94,7 @@ export async function listingEntries(source: SourceRow, found: Candidate[]): Pro
  * and passes an undated entry; `admits` judges again after detail pages may have dated it.
  */
 function admission(source: SourceRow, known: Map<string, StoredDetail>, firstImport: boolean) {
-  const months = Number(source.config._aihot?.initialBackfillMonths ?? 12);
+  const months = Number(source.config._baoxian_news?.initialBackfillMonths ?? 12);
   const floor = firstImport ? Date.now() - months * 30 * DAY_MS
     : source.kind === "x_search" ? null : Date.parse(String(source.cursor!.initializedAt)) - STALE_ON_DISCOVERY_MS;
   const byListing = (c: Candidate) => floor === null || !firstImport && known.has(c.identityKey!) || !(c.publishedAt && c.publishedAt.getTime() < floor);
@@ -354,7 +354,7 @@ export async function collectSource(sourceId: string, opts: { force?: boolean; x
     const { byListing, admits } = admission(source, known, firstImport);
     candidates = candidates.filter(byListing);
     // First import of a new source: bounded, and archived by source time (never "today", never pushed).
-    if (firstImport) candidates = candidates.slice(0, Number(source.config._aihot?.initialBackfillLimit ?? 30));
+    if (firstImport) candidates = candidates.slice(0, Number(source.config._baoxian_news?.initialBackfillLimit ?? 30));
     const reads = await enrichDetails(candidates, source, known, {
       budget: Number(d?.maxFetches ?? 0), admits,
       after: source.cursor?.detailRules === rules ? source.cursor?.detailAfter : undefined,

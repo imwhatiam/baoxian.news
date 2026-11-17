@@ -1,14 +1,14 @@
 {
-  "name": "@aihot/backend",
+  "name": "@baoxian-news/backend",
   "private": true,
   "type": "module",
   "exports": {
     "./*": "./src/*.ts"
   },
   "dependencies": {
-    "@aihot/contracts": "*",
-    "@aihot/industry": "*",
-    "@aihot/site": "*",
+    "@baoxian-news/contracts": "*",
+    "@baoxian-news/industry": "*",
+    "@baoxian-news/site": "*",
     "@mozilla/readability": "0.6.0",
     "@paralleldrive/cuid2": "3.3.0",
     "cheerio": "1.2.0",

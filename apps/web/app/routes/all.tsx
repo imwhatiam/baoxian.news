@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { Link, redirect, useLoaderData, useNavigation, useSearchParams } from "react-router";
 import type { Route } from "./+types/all";
-import type { PoolResponse } from "@aihot/contracts/site";
-import { SITE, subjectAfter } from "@aihot/site";
-import { beijingTime } from "@aihot/contracts/time";
+import type { PoolResponse } from "@baoxian-news/contracts/site";
+import { SITE, subjectAfter } from "@baoxian-news/site";
+import { beijingTime } from "@baoxian-news/contracts/time";
 import { cachedPage, loadOr404 } from "../lib/api.server";
 import { pageReuse } from "../lib/page-reuse";
 import { filterParams, hasFeedFilters, itemListLd, listPath, pageMeta, readFilters } from "../lib/seo";

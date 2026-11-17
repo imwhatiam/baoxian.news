@@ -1,8 +1,8 @@
 import { Fragment, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { IntentLink } from "../components/ui/IntentLink";
 import { useLoaderData } from "react-router";
-import type { SiteContact, SiteStats } from "@aihot/contracts/site";
-import { ABOUT, REPORTS, SITE, subjectAfter } from "@aihot/site";
+import type { SiteContact, SiteStats } from "@baoxian-news/contracts/site";
+import { ABOUT, REPORTS, SITE, subjectAfter } from "@baoxian-news/site";
 import { apiGet, cachedPage } from "../lib/api.server";
 import { pageReuse } from "../lib/page-reuse";
 import { organizationLd, pageMeta } from "../lib/seo";

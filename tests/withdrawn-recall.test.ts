@@ -3,9 +3,9 @@ import { stub } from './setup.ts';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { after, test } from 'node:test';
-import { sql, closeDb } from '@aihot/backend/db';
-import { candidateViews, recallFacts, relatedPosts } from '@aihot/backend/events/recall';
-import { consolidate, linkRelatedStories } from '@aihot/backend/events/consolidate';
+import { sql, closeDb } from '@baoxian-news/backend/db';
+import { candidateViews, recallFacts, relatedPosts } from '@baoxian-news/backend/events/recall';
+import { consolidate, linkRelatedStories } from '@baoxian-news/backend/events/consolidate';
 const prompts: string[] = [];
 const provider = await stub((_hit,request) => {
   prompts.push(JSON.parse(request.body).messages[1].content);

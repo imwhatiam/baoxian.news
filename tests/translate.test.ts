@@ -5,12 +5,12 @@ import { gate, pointModels, Reply, stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { after, before, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { upsertMaterial } from "@aihot/backend/content/materials";
-import { translateArticle, translatePending } from "@aihot/backend/editorial/translate";
-import { stopBoss } from "@aihot/backend/jobs/queue";
-import { autoReleaseUnknownReceipts } from "@aihot/backend/operations/recover";
-import { publishArticle } from "@aihot/backend/publication/publish";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { upsertMaterial } from "@baoxian-news/backend/content/materials";
+import { translateArticle, translatePending } from "@baoxian-news/backend/editorial/translate";
+import { stopBoss } from "@baoxian-news/backend/jobs/queue";
+import { autoReleaseUnknownReceipts } from "@baoxian-news/backend/operations/recover";
+import { publishArticle } from "@baoxian-news/backend/publication/publish";
 import { buildApp } from "../apps/api/src/app.ts";
 
 const T = tag();

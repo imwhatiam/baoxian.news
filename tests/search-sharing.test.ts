@@ -3,9 +3,9 @@
 import { tag, gate } from './setup.ts';
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
-import { sql, closeDb } from '@aihot/backend/db';
-import { loadPool } from '@aihot/backend/publication/pool';
-import { sharedSearch } from '@aihot/backend/lib/cache';
+import { sql, closeDb } from '@baoxian-news/backend/db';
+import { loadPool } from '@baoxian-news/backend/publication/pool';
+import { sharedSearch } from '@baoxian-news/backend/lib/cache';
 import { buildApp } from '../apps/api/src/app.ts';
 
 const app = await buildApp();

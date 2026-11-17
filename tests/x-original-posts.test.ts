@@ -5,11 +5,11 @@ import { pointModels, stub, tag } from "./setup.ts";
 import { analysisStep, SELECTING_SCORE } from "./analysis-steps.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { upsertMaterial } from "@aihot/backend/content/materials";
-import { analyzeArticle } from "@aihot/backend/editorial/analyze";
-import { publishArticle } from "@aihot/backend/publication/publish";
-import { stopBoss } from "@aihot/backend/jobs/queue";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { upsertMaterial } from "@baoxian-news/backend/content/materials";
+import { analyzeArticle } from "@baoxian-news/backend/editorial/analyze";
+import { publishArticle } from "@baoxian-news/backend/publication/publish";
+import { stopBoss } from "@baoxian-news/backend/jobs/queue";
 import { buildApp } from "../apps/api/src/app.ts";
 
 const source = `original-post-${tag()}`;

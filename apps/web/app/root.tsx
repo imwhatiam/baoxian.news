@@ -2,8 +2,8 @@ import {
   isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration, useLocation, useNavigation, useRouteError, useRouteLoaderData,
   type ShouldRevalidateFunction,
 } from "react-router";
-import { SITE } from "@aihot/site";
-import { RingMark } from "@aihot/site/brand/Logo.tsx";
+import { SITE } from "@baoxian-news/site";
+import { RingMark } from "@baoxian-news/site/brand/Logo.tsx";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Route } from "./+types/root";
 import "./app.css";
@@ -28,7 +28,7 @@ export const links: Route.LinksFunction = () => [
 
 /** The release rendering this document: once a newer one is deployed, a render error reloads the page (entry.client). */
 export function loader() {
-  return { release: process.env.AIHOT_RELEASE ?? null };
+  return { release: process.env.BAOXIAN_NEWS_RELEASE ?? null };
 }
 
 export const shouldRevalidate: ShouldRevalidateFunction = () => false;
@@ -40,7 +40,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <html lang={SITE.locale} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        {documentRelease && <meta name="aihot-release" content={documentRelease} />}
+        {documentRelease && <meta name="baoxian-news-release" content={documentRelease} />}
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf9f6" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#13191c" />

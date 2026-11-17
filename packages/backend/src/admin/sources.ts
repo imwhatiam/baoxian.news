@@ -1,9 +1,9 @@
 // Source administration: list, detail, preview (fetch without storing), edit, create with
 // duplicate checks, pause/resume and manual collection. Every change is audited.
 import { z } from "zod";
-import { SOURCE_DEFAULTS } from "@aihot/site";
-import type { AdminSource, AdminSourceCreated, AdminSourceDetail, AdminSourcePreview, AdminSourceRow, AdminSources, BeforeJson } from "@aihot/contracts/admin";
-import { REPLACEABLE_SOURCE_KINDS } from "@aihot/contracts/admin";
+import { SOURCE_DEFAULTS } from "@baoxian-news/site";
+import type { AdminSource, AdminSourceCreated, AdminSourceDetail, AdminSourcePreview, AdminSourceRow, AdminSources, BeforeJson } from "@baoxian-news/contracts/admin";
+import { REPLACEABLE_SOURCE_KINDS } from "@baoxian-news/contracts/admin";
 import { audit, auditHistory, Conflict } from "../audit.ts";
 import { groupingReset } from "../content/provenance.ts";
 import { sql, type Db } from "../db.ts";

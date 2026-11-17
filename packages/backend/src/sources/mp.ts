@@ -1,8 +1,8 @@
 // WeChat official accounts. Dajiala (极致了, a paid service) supplies each account's latest posts, and
 // an article body only when the page itself does not carry one; every enabled account is checked once
 // per source interval.
-import { COLLECT_TIMES } from "@aihot/site";
-import { beijingAt, beijingDate } from "@aihot/contracts/time";
+import { COLLECT_TIMES } from "@baoxian-news/site";
+import { beijingAt, beijingDate } from "@baoxian-news/contracts/time";
 import { sql } from "../db.ts";
 import { upsertMaterial } from "../content/materials.ts";
 import { enqueue, QUEUES } from "../jobs/queue.ts";

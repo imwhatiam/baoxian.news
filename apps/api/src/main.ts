@@ -1,10 +1,10 @@
-import { assertProductionSecrets, config } from "@aihot/backend/config";
-import { closeDb } from "@aihot/backend/db";
-import { installModules } from "@aihot/backend/modules";
-import { SERVER_MODULES } from "@aihot/site/modules/server";
-import { DEPLOYMENT } from "@aihot/site";
-import { startHeartbeat } from "@aihot/backend/operations/heartbeat";
-import { startWorkerWatchdog } from "@aihot/backend/operations/watch";
+import { assertProductionSecrets, config } from "@baoxian-news/backend/config";
+import { closeDb } from "@baoxian-news/backend/db";
+import { installModules } from "@baoxian-news/backend/modules";
+import { SERVER_MODULES } from "@baoxian-news/site/modules/server";
+import { DEPLOYMENT } from "@baoxian-news/site";
+import { startHeartbeat } from "@baoxian-news/backend/operations/heartbeat";
+import { startWorkerWatchdog } from "@baoxian-news/backend/operations/watch";
 import { buildApp } from "./app.ts";
 
 installModules(SERVER_MODULES);

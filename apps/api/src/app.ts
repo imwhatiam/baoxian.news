@@ -1,10 +1,10 @@
 import Fastify, { LogController, type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
-import { OAUTH_PROBE_PATHS, resolveRedirect } from "@aihot/contracts/http-policy";
-import { sql } from "@aihot/backend/db";
-import { logError } from "@aihot/backend/lib/log-error";
-import { serverModules } from "@aihot/backend/modules";
+import { OAUTH_PROBE_PATHS, resolveRedirect } from "@baoxian-news/contracts/http-policy";
+import { sql } from "@baoxian-news/backend/db";
+import { logError } from "@baoxian-news/backend/lib/log-error";
+import { serverModules } from "@baoxian-news/backend/modules";
 import { registerSite } from "./routes/site.ts";
 import { registerOg } from "./routes/og.ts";
 import { registerAdminAuth } from "./routes/admin-auth.ts";
@@ -82,7 +82,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.get("/api/health", async (_req, reply) => {
     const started = performance.now();
     await sql`SELECT 1`;
-    return reply.header("Cache-Control", "no-store").send({ ok: true, db: "ok", ms: Math.round(performance.now() - started), release: process.env.AIHOT_RELEASE ?? "dev" });
+    return reply.header("Cache-Control", "no-store").send({ ok: true, db: "ok", ms: Math.round(performance.now() - started), release: process.env.BAOXIAN_NEWS_RELEASE ?? "dev" });
   });
 
   registerSite(app);

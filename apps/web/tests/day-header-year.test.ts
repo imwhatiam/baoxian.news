@@ -2,7 +2,7 @@
 // 2019-02-19, sits under a header reading "2月19日", and readers take it for this year's.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { monthDay } from "@aihot/contracts/time";
+import { monthDay } from "@baoxian-news/contracts/time";
 
 test("a day of today's year has no year; another year's carries it", () => {
   assert.equal(monthDay("2026-10-05", "2026-10-19"), "10月5日");

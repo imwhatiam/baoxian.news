@@ -1,8 +1,8 @@
 // Shared HTTP helpers: Problem JSON, ETag / 304, strict query parsing.
 import { createHash } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { NO_STORE } from "@aihot/contracts/http-policy";
-import type { JsonNotice } from "@aihot/backend/modules";
+import { NO_STORE } from "@baoxian-news/contracts/http-policy";
+import type { JsonNotice } from "@baoxian-news/backend/modules";
 
 const PROBLEM_TITLES: Record<number, string> = {
   400: "Bad request",

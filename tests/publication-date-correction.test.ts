@@ -10,14 +10,14 @@
 import { tag } from './setup.ts';
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
-import { closeDb, sql } from '@aihot/backend/db';
-import { upsertMaterial } from '@aihot/backend/content/materials';
-import { correctPublicationDate, previewPublicationDateCorrection } from '@aihot/backend/admin/content';
-import { publishArticle } from '@aihot/backend/publication/publish';
-import { getBoss, stopBoss } from '@aihot/backend/jobs/queue';
-import { installModules } from '@aihot/backend/modules';
+import { closeDb, sql } from '@baoxian-news/backend/db';
+import { upsertMaterial } from '@baoxian-news/backend/content/materials';
+import { correctPublicationDate, previewPublicationDateCorrection } from '@baoxian-news/backend/admin/content';
+import { publishArticle } from '@baoxian-news/backend/publication/publish';
+import { getBoss, stopBoss } from '@baoxian-news/backend/jobs/queue';
+import { installModules } from '@baoxian-news/backend/modules';
 import { randomUUID } from 'node:crypto';
-import { QUEUES } from '@aihot/backend/jobs/queue';
+import { QUEUES } from '@baoxian-news/backend/jobs/queue';
 
 const T=tag();
 const source=`date-correction-${T}`;

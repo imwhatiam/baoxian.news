@@ -5,16 +5,16 @@
 import { stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { config } from "@aihot/backend/config";
-import { closeDb, sql } from "@aihot/backend/db";
-import { extractArticleBody } from "@aihot/backend/content/extract";
-import { upsertMaterial } from "@aihot/backend/content/materials";
-import { loadAnalyzeInput } from "@aihot/backend/editorial/input";
-import { renderContext } from "@aihot/backend/editorial/writing";
-import { stopBoss } from "@aihot/backend/jobs/queue";
-import { collectXShard } from "@aihot/backend/sources/collect";
-import { tweetToCandidate } from "@aihot/backend/sources/x";
-import type { SdTweet } from "@aihot/backend/providers/socialdata";
+import { config } from "@baoxian-news/backend/config";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { extractArticleBody } from "@baoxian-news/backend/content/extract";
+import { upsertMaterial } from "@baoxian-news/backend/content/materials";
+import { loadAnalyzeInput } from "@baoxian-news/backend/editorial/input";
+import { renderContext } from "@baoxian-news/backend/editorial/writing";
+import { stopBoss } from "@baoxian-news/backend/jobs/queue";
+import { collectXShard } from "@baoxian-news/backend/sources/collect";
+import { tweetToCandidate } from "@baoxian-news/backend/sources/x";
+import type { SdTweet } from "@baoxian-news/backend/providers/socialdata";
 
 const T = tag();
 const HANDLE = `xa${T}`;

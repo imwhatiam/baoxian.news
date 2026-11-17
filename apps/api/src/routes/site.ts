@@ -1,19 +1,19 @@
 // First-party site API (/api/site/*). Not public, not versioned, never called /api/v2.
 // Reads through the same public read layer as v1; no cookies are read or set.
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { isCategoryKey, isChannelKey, type CategoryKey, type ChannelKey } from "@aihot/contracts/taxonomy";
-import type { ReportIndexResponse, ReportLatestPage, ReportNavigationResponse, SearchSuggestions, SiteContact } from "@aihot/contracts/site";
-import { InvalidCursorError } from "@aihot/backend/lib/cursor";
-import { exportMarkdown, loadItemDetail } from "@aihot/backend/publication/detail";
-import { loadPool, SearchBusyError } from "@aihot/backend/publication/pool";
-import { loadTimeline } from "@aihot/backend/publication/timeline";
-import { loadStoryFollowups } from "@aihot/backend/publication/followups";
-import { loadGroupReports } from "@aihot/backend/publication/groups";
-import { hotSearchLinks, loadHotStrip } from "@aihot/backend/publication/hot";
-import { loadContact, loadMakerAvatar } from "@aihot/backend/site/contact";
-import { loadSiteStats } from "@aihot/backend/site/stats";
-import { loadHot, loadStoryDetail, resolveStory } from "@aihot/backend/publication/stories";
-import { listReports, loadReport, reportNavigation, loadReportNavigation, loadReportMonth, type ReportKind } from "@aihot/backend/publication/reports";
+import { isCategoryKey, isChannelKey, type CategoryKey, type ChannelKey } from "@baoxian-news/contracts/taxonomy";
+import type { ReportIndexResponse, ReportLatestPage, ReportNavigationResponse, SearchSuggestions, SiteContact } from "@baoxian-news/contracts/site";
+import { InvalidCursorError } from "@baoxian-news/backend/lib/cursor";
+import { exportMarkdown, loadItemDetail } from "@baoxian-news/backend/publication/detail";
+import { loadPool, SearchBusyError } from "@baoxian-news/backend/publication/pool";
+import { loadTimeline } from "@baoxian-news/backend/publication/timeline";
+import { loadStoryFollowups } from "@baoxian-news/backend/publication/followups";
+import { loadGroupReports } from "@baoxian-news/backend/publication/groups";
+import { hotSearchLinks, loadHotStrip } from "@baoxian-news/backend/publication/hot";
+import { loadContact, loadMakerAvatar } from "@baoxian-news/backend/site/contact";
+import { loadSiteStats } from "@baoxian-news/backend/site/stats";
+import { loadHot, loadStoryDetail, resolveStory } from "@baoxian-news/backend/publication/stories";
+import { listReports, loadReport, reportNavigation, loadReportNavigation, loadReportMonth, type ReportKind } from "@baoxian-news/backend/publication/reports";
 import { looseQuery, QueryError, sendJsonWithEtag, sendProblem } from "../http/respond.ts";
 
 type Handler = (req: FastifyRequest, reply: FastifyReply) => Promise<unknown>;

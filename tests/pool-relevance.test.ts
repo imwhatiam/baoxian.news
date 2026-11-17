@@ -4,8 +4,8 @@
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { loadPool, publicMatchCondition, searchTerms } from "@aihot/backend/publication/pool";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { loadPool, publicMatchCondition, searchTerms } from "@baoxian-news/backend/publication/pool";
 
 const T = `relevance-${tag()}`;
 const now = new Date("2026-01-01T12:00:00Z");

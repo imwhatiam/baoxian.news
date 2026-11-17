@@ -4,6 +4,7 @@
 // rule in SQL, and grouping takes the composite rule from here too. What a publication holds is
 // derived once, at publish time, by publish.ts and rules.ts.
 import { sql } from "../db.ts";
+import { CATEGORY_LIST_ONLY } from "@baoxian-news/industry/taxonomy";
 import { independentSelectedSources } from './rules.ts';
 
 /** These reports share their fact's display slot; independent sources keep their own selected card. */
@@ -29,9 +30,13 @@ export function storyReportCondition(now: Date) {
   return sql`p.visibility = 'public' AND s.participation_mode = 'editorial' AND ${releasedCondition(now)}`;
 }
 
-/** Selected set as the website shows it (home timeline, reading groups, topics): every selected report. */
+/**
+ * Selected set as the website shows it (home timeline, reading groups, topics): every selected report,
+ * except the list-only categories — one selected before its category became list-only stays out too.
+ */
 export function selectedCondition(now: Date) {
-  return sql`p.visibility = 'public' AND p.selected AND p.visible_after <= ${now}`;
+  return sql`p.visibility = 'public' AND p.selected AND p.visible_after <= ${now}
+    AND coalesce(p.category, '') <> ALL(${CATEGORY_LIST_ONLY}::text[])`;
 }
 
 /**

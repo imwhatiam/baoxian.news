@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
-import { SITE } from "@aihot/site";
+import { SITE } from "@baoxian-news/site";
 import { PhoneBar } from "../components/shell/PhoneBar";
 import type { Screen } from "../components/shell/screens";
 import { edgeTtl } from "../lib/api.server";

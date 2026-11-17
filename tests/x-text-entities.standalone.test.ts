@@ -4,8 +4,8 @@
 import "./setup.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { tweetText, type SdTweet } from "@aihot/backend/providers/socialdata";
-import { tweetToCandidate } from "@aihot/backend/sources/x";
+import { tweetText, type SdTweet } from "@baoxian-news/backend/providers/socialdata";
+import { tweetToCandidate } from "@baoxian-news/backend/sources/x";
 
 const post = (text: string): SdTweet => ({ id_str: "123", tweet_created_at: "2026-10-01T00:00:00.000Z", full_text: text, user: { name: "Example", screen_name: "example" } });
 

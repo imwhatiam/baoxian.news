@@ -1,8 +1,9 @@
 // Hot ranking: attention over the last 48 hours from independent participants.
 // Each participant counts once per window (repeat collection does not add heat), decays with a
 // 24-hour half-life, and the source time (not collection time) places evidence in the window.
-import { COMMUNITY_FEEDS } from "@aihot/site";
-import { HEAT_WEIGHTS } from "@aihot/industry/heat-sources";
+import { COMMUNITY_FEEDS } from "@baoxian-news/site";
+import { HEAT_WEIGHTS } from "@baoxian-news/industry/heat-sources";
+import { CATEGORY_LIST_ONLY } from "@baoxian-news/industry/taxonomy";
 import { sql, type Db } from "../db.ts";
 import { pickRepresentative, REPRESENTATIVE_COLUMNS, type RepresentativeIdentity } from "../publication/representative.ts";
 import { evidenceCondition, listedCondition } from "../publication/scope.ts";
@@ -118,6 +119,9 @@ export function behindSources(clocks: SourceClock[], at: number, grace: boolean)
  * belongs to this same event; a match of a source that covers another event still counts as outside
  * reporting. `origin` lets a reader keep to our own sources (the daily report does: its "three
  * participants" rule is about our coverage, not about reprints elsewhere).
+ *
+ * A list-only category (国际) contributes no evidence, here or in its probe matches: it takes part in
+ * no heat ranking. Signals stored before its category became list-only stay in the table for audit.
  */
 export const currentSignals = () => sql`(
   SELECT ss.story_id, ss.article_id, s.id AS source_id, ss.observed_at, s.created_at AS source_since,
@@ -133,6 +137,7 @@ export const currentSignals = () => sql`(
   FROM story_signals ss JOIN articles a ON a.id = ss.article_id JOIN sources s ON s.id = a.source_id
   LEFT JOIN publications p ON p.article_id = ss.article_id
   WHERE s.participation_mode <> 'isolated' AND coalesce(p.visibility, 'public') <> 'withdrawn'
+    AND coalesce(p.category, '') <> ALL(${CATEGORY_LIST_ONLY}::text[])
     AND NOT EXISTS (SELECT 1 FROM grouping_overrides go WHERE go.article_id = ss.article_id AND go.mode = 'standalone')
     AND (s.participation_mode <> 'editorial' OR EXISTS (SELECT 1 FROM fact_articles fa JOIN facts f ON f.id = fa.fact_id
       WHERE fa.article_id = ss.article_id AND f.story_id = ss.story_id AND ${evidenceCondition()}))
@@ -151,6 +156,7 @@ export const currentSignals = () => sql`(
   CROSS JOIN LATERAL jsonb_array_elements(coalesce(hp.matches, '[]'::jsonb)) m
   LEFT JOIN publications hp_p ON hp_p.article_id = hp.article_id
   WHERE hp.status = 'ok' AND coalesce(hp_p.visibility, 'public') <> 'withdrawn'
+    AND coalesce(hp_p.category, '') <> ALL(${CATEGORY_LIST_ONLY}::text[])
     AND NOT (
       coalesce((m->>'own')::boolean, false)
       AND (m->'ownSourceIds' IS NULL OR EXISTS (

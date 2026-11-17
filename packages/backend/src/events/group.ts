@@ -16,7 +16,7 @@
 // story get another look when a report founds a fact close to them (rematchSignals); history
 // (isHistorical) founds no event. Runs serially (queue concurrency 1).
 import { modelFor, modelRoute } from "../editorial/models.ts";
-import { beijingDate, beijingMidnight } from "@aihot/contracts/time";
+import { beijingDate, beijingMidnight } from "@baoxian-news/contracts/time";
 import { sql, type Db, type Tx } from "../db.ts";
 import { newShortId, newUuid } from "../lib/ids.ts";
 import { chatJson } from "../providers/llm.ts";

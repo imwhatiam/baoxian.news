@@ -3,12 +3,12 @@ import "./setup.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import * as cheerio from "cheerio";
-import { readable } from "@aihot/backend/content/extract";
-import { sanitizeBody } from "@aihot/backend/content/sanitize";
-import { bodyToMarkdown, markdownBody } from "@aihot/backend/content/markdown";
-import { shield, unshield } from "@aihot/backend/editorial/translate";
-import { proxyBodyImages } from "@aihot/backend/media/imgproxy";
-import { stripTags } from "@aihot/backend/lib/text";
+import { readable } from "@baoxian-news/backend/content/extract";
+import { sanitizeBody } from "@baoxian-news/backend/content/sanitize";
+import { bodyToMarkdown, markdownBody } from "@baoxian-news/backend/content/markdown";
+import { shield, unshield } from "@baoxian-news/backend/editorial/translate";
+import { proxyBodyImages } from "@baoxian-news/backend/media/imgproxy";
+import { stripTags } from "@baoxian-news/backend/lib/text";
 
 const base = "https://publisher.example/posts/article";
 const prose = "An ordinary article explains the announcement and includes a demonstration of the work. ".repeat(6);

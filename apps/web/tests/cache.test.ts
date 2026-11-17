@@ -1,7 +1,7 @@
-// Run after `npm run build -w @aihot/web`. Real production server/router, synthetic HTTP API only.
+// Run after `npm run build -w @baoxian-news/web`. Real production server/router, synthetic HTTP API only.
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
+import { CATEGORY_KEYS } from "@baoxian-news/contracts/taxonomy";
 import { UNSAFE_decodeViaTurboStream } from "react-router";
 import { fakeApi, startWebServer, type WebServer } from "./web-server.ts";
 

@@ -4,9 +4,9 @@ import './setup.ts';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { after, test } from 'node:test';
-import { closeDb, sql } from '@aihot/backend/db';
-import type { HotEntry } from '@aihot/backend/events/hot';
-import { loadHot, loadStoryDetail } from '@aihot/backend/publication/stories';
+import { closeDb, sql } from '@baoxian-news/backend/db';
+import type { HotEntry } from '@baoxian-news/backend/events/hot';
+import { loadHot, loadStoryDetail } from '@baoxian-news/backend/publication/stories';
 
 after(closeDb);
 test('hot cards send a Unicode-safe excerpt while the event keeps its complete public text',async()=>{

@@ -11,9 +11,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 import { promisify } from "node:util";
-import { REPO_ROOT } from "@aihot/backend/config";
-import { closeDb, sql } from "@aihot/backend/db";
-import { composeStoryDigest } from "@aihot/backend/events/digest";
+import { REPO_ROOT } from "@baoxian-news/backend/config";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { composeStoryDigest } from "@baoxian-news/backend/events/digest";
 import { parseDigestEvalJsonl } from "../scripts/eval-story-digests-core.ts";
 
 const exec = promisify(execFile);

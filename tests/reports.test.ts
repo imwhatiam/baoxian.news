@@ -5,13 +5,13 @@
 import { editionAt, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { upsertMaterial } from "@aihot/backend/content/materials";
-import { stopBoss } from "@aihot/backend/jobs/queue";
-import { publishArticle } from "@aihot/backend/publication/publish";
-import { loadReport } from "@aihot/backend/publication/reports";
-import { composeDaily, dueDaily, dueMonthly, dueWeekly } from "@aihot/backend/reports/compose";
-import { REPORTS, SITE } from "@aihot/site";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { upsertMaterial } from "@baoxian-news/backend/content/materials";
+import { stopBoss } from "@baoxian-news/backend/jobs/queue";
+import { publishArticle } from "@baoxian-news/backend/publication/publish";
+import { loadReport } from "@baoxian-news/backend/publication/reports";
+import { composeDaily, dueDaily, dueMonthly, dueWeekly } from "@baoxian-news/backend/reports/compose";
+import { REPORTS, SITE } from "@baoxian-news/site";
 
 const T = tag();
 const SOURCE = `test-reports-${T}`;

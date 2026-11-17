@@ -6,12 +6,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useLocation, useNavigation } from "react-router";
 import { Collapse } from "../../components/ui/Presence";
 import { ToggleChip } from "../../components/ui/Controls";
-import type { TimelineCard, TimelineFilters, TimelineResponse } from "@aihot/contracts/site";
+import type { TimelineCard, TimelineFilters, TimelineResponse } from "@baoxian-news/contracts/site";
 import { FeedItem } from "./FeedItem";
 import { IconChevronDown } from "../../components/icons";
-import { RingMark } from "@aihot/site/brand/Logo.tsx";
+import { RingMark } from "@baoxian-news/site/brand/Logo.tsx";
 import { EmptyState } from "../../components/ui/Page";
-import { beijingDate, beijingTime, beijingWeekday, monthDay } from "@aihot/contracts/time";
+import { beijingDate, beijingTime, beijingWeekday, monthDay } from "@baoxian-news/contracts/time";
 import { byBeijingDay, weekdayShort } from "../../lib/format";
 import { isHydrated } from "../../lib/hydration";
 import { markRead, useReadSet } from "../../lib/local-state";

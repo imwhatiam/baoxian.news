@@ -9,9 +9,9 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { DEPLOYMENT } from "@aihot/site";
-import { REPO_ROOT } from "@aihot/backend/config";
-import { closeDb } from "@aihot/backend/db";
+import { DEPLOYMENT } from "@baoxian-news/site";
+import { REPO_ROOT } from "@baoxian-news/backend/config";
+import { closeDb } from "@baoxian-news/backend/db";
 import {
   SELECTION_PROMPT_VERSION,
   awaitsMaterial,
@@ -23,8 +23,8 @@ import {
   tierThreshold,
   type AnalysisRun,
   type AnalyzeInputArticle,
-} from "@aihot/backend/editorial/analyze";
-import { importSelectBenchRun } from "@aihot/backend/admin/selectbench";
+} from "@baoxian-news/backend/editorial/analyze";
+import { importSelectBenchRun } from "@baoxian-news/backend/admin/selectbench";
 import { evalModels, pmap, positiveInt, safeReportNamePart, sampleCases, usageFor } from "./eval-tools.ts";
 import { parseSelectionGoldJsonl, selectionMetrics, selectionThresholdMetrics, type SelectionDecision, type SelectionGoldRow } from "./eval-selection-core.ts";
 

@@ -2,7 +2,7 @@
 // deadline; a saved copy may bridge a restart only for the remainder of that original lifetime.
 import { mkdir, readFile, stat, utimes, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { ABOUT } from "@aihot/site";
+import { ABOUT } from "@baoxian-news/site";
 import { config, REPO_ROOT } from "../config.ts";
 import { sha256, stableJson } from "../lib/ids.ts";
 import { latestHotRanking } from "./hot.ts";

@@ -5,8 +5,8 @@ import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { recallFacts } from "@aihot/backend/events/recall";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { recallFacts } from "@baoxian-news/backend/events/recall";
 
 const T = `recall-${tag()}`;
 const title = `${T}产品发布全新版本详细说明`;

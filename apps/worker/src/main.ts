@@ -1,18 +1,18 @@
 // Worker process: queues and schedules for collection, processing, events, reports and ops, and the site's
 // modules (site/modules/server.ts).
-import { assertProductionSecrets } from "@aihot/backend/config";
-import { closeDb } from "@aihot/backend/db";
-import { getBoss, stopBoss, workModuleQueues } from "@aihot/backend/jobs/queue";
-import { installModules } from "@aihot/backend/modules";
-import { SERVER_MODULES } from "@aihot/site/modules/server";
-import { registerContentJobs } from "@aihot/backend/jobs/content";
-import { registerSourceJobs } from "@aihot/backend/jobs/sources";
-import { registerEventJobs } from "@aihot/backend/jobs/events";
-import { registerPublicationJobs } from "@aihot/backend/jobs/publication";
-import { registerMediaJobs } from "@aihot/backend/jobs/media";
-import { registerHeatJobs } from "@aihot/backend/jobs/heat";
+import { assertProductionSecrets } from "@baoxian-news/backend/config";
+import { closeDb } from "@baoxian-news/backend/db";
+import { getBoss, stopBoss, workModuleQueues } from "@baoxian-news/backend/jobs/queue";
+import { installModules } from "@baoxian-news/backend/modules";
+import { SERVER_MODULES } from "@baoxian-news/site/modules/server";
+import { registerContentJobs } from "@baoxian-news/backend/jobs/content";
+import { registerSourceJobs } from "@baoxian-news/backend/jobs/sources";
+import { registerEventJobs } from "@baoxian-news/backend/jobs/events";
+import { registerPublicationJobs } from "@baoxian-news/backend/jobs/publication";
+import { registerMediaJobs } from "@baoxian-news/backend/jobs/media";
+import { registerHeatJobs } from "@baoxian-news/backend/jobs/heat";
 import { registerSchedules } from "./schedules.ts";
-import { startHeartbeat } from "@aihot/backend/operations/heartbeat";
+import { startHeartbeat } from "@baoxian-news/backend/operations/heartbeat";
 
 installModules(SERVER_MODULES);
 assertProductionSecrets([["auth", "IMG_PROXY_SIGN_SECRET"]]);

@@ -1,8 +1,9 @@
 // Public read layer, item level. Every exit (site API, sitemap) reads items through these
 // columns and views; which rows are public is decided by scope.ts.
-import { CATEGORY_KEYS, toPublicApiCategory, type CategoryKey, type ChannelKey, type PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
-import type { FeedItemSummary, ItemSummary, MediaView, XPostView } from "@aihot/contracts/site";
-import { POLICY } from "@aihot/site";
+import { CATEGORY_KEYS, toPublicApiCategory, type CategoryKey, type ChannelKey, type PublicApiCategoryKey } from "@baoxian-news/contracts/taxonomy";
+import { CATEGORY_LIST_ONLY } from "@baoxian-news/industry/taxonomy";
+import type { FeedItemSummary, ItemSummary, MediaView, XPostView } from "@baoxian-news/contracts/site";
+import { POLICY } from "@baoxian-news/site";
 import { sql, type Db } from "../db.ts";
 import { isChineseText } from "../lib/text.ts";
 import { isEmptyOrLinkOnly } from "../content/posts.ts";
@@ -72,10 +73,13 @@ export function channelCondition(channel: ChannelKey | null | undefined) {
   return sql`AND p.channel = ${channel}`;
 }
 
-/** The website's filter: one of its own categories, plus the second category a 大童 item also belongs to. */
+/** The website's filter: one of its own categories, plus the second category a 大童 item also belongs to.
+ * Without a category (the home timeline, "all", a search) the list-only categories stay out: their items
+ * appear only under their own category. */
 export function categoryCondition(category: CategoryKey | null | undefined) {
-  if (!category) return sql``;
-  return sql`AND (p.category = ${category} OR p.also_category = ${category})`;
+  if (category) return sql`AND (p.category = ${category} OR p.also_category = ${category})`;
+  return sql`AND coalesce(p.category, '') <> ALL(${CATEGORY_LIST_ONLY}::text[])
+    AND coalesce(p.also_category, '') <> ALL(${CATEGORY_LIST_ONLY}::text[])`;
 }
 
 /** The public API's, RSS's and MCP's filter: every category the site publishes as this one (PUBLIC_CATEGORIES). */

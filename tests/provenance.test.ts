@@ -3,17 +3,17 @@
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
-import { upsertMaterial } from "@aihot/backend/content/materials";
-import { publisherOwnsUrl } from "@aihot/backend/content/provenance";
-import { publishArticle } from "@aihot/backend/publication/publish";
-import { loadPool } from "@aihot/backend/publication/pool";
-import { ingestItems } from "@aihot/backend/ingest/items";
-import { queueProcessing, settleNonEditorial } from "@aihot/backend/jobs/content";
-import { collectSource } from "@aihot/backend/sources/collect";
-import { createSource, updateSource } from "@aihot/backend/admin/sources";
-import { groupArticle } from "@aihot/backend/events/group";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { QUEUES, stopBoss } from "@baoxian-news/backend/jobs/queue";
+import { upsertMaterial } from "@baoxian-news/backend/content/materials";
+import { publisherOwnsUrl } from "@baoxian-news/backend/content/provenance";
+import { publishArticle } from "@baoxian-news/backend/publication/publish";
+import { loadPool } from "@baoxian-news/backend/publication/pool";
+import { ingestItems } from "@baoxian-news/backend/ingest/items";
+import { queueProcessing, settleNonEditorial } from "@baoxian-news/backend/jobs/content";
+import { collectSource } from "@baoxian-news/backend/sources/collect";
+import { createSource, updateSource } from "@baoxian-news/backend/admin/sources";
+import { groupArticle } from "@baoxian-news/backend/events/group";
 
 after(async () => { await stopBoss(); await closeDb(); });
 

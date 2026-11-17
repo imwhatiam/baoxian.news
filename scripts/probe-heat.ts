@@ -2,9 +2,9 @@
 // node --env-file=.env scripts/probe-heat.ts <articleId> [...]
 //
 // 不给 articleId 时，挑最近 20 条已选中、还没探查过的文章跑一遍。
-import { closeDb, sql } from "@aihot/backend/db";
-import { stopBoss } from "@aihot/backend/jobs/queue";
-import { probeArticle } from "@aihot/backend/heat/probe";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { stopBoss } from "@baoxian-news/backend/jobs/queue";
+import { probeArticle } from "@baoxian-news/backend/heat/probe";
 
 const ids = process.argv.slice(2);
 const targets = ids.length

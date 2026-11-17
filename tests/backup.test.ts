@@ -13,9 +13,9 @@ import path from "node:path";
 import { after, beforeEach, test } from "node:test";
 import { promisify } from "node:util";
 import sharp from "sharp";
-import { config } from "@aihot/backend/config";
-import { closeDb, sql } from "@aihot/backend/db";
-import { runBackup } from "@aihot/backend/operations/backup";
+import { config } from "@baoxian-news/backend/config";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { runBackup } from "@baoxian-news/backend/operations/backup";
 
 const run = promisify(execFile);
 const T = tag();
@@ -46,7 +46,7 @@ globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) =>
 }) as typeof fetch;
 
 beforeEach(async () => {
-  config.dataDir = await mkdtemp(path.join(tmpdir(), "aihot-backup-files-"));
+  config.dataDir = await mkdtemp(path.join(tmpdir(), "baoxian-news-backup-files-"));
   roots.push(config.dataDir);
   objects.clear();
 });
@@ -62,7 +62,7 @@ after(async () => {
 });
 
 async function extractSavedFiles() {
-  const destination = await mkdtemp(path.join(tmpdir(), "aihot-backup-restored-"));
+  const destination = await mkdtemp(path.join(tmpdir(), "baoxian-news-backup-restored-"));
   roots.push(destination);
   const archive = objects.get(`daily/${stem}-files-202611010400.tar.gz`);
   assert.ok(archive, "backup must supply the real file archive");
@@ -240,9 +240,9 @@ for (const phase of ["pg_dump", "tar"] as const) {
         return child;
       };
       syncBuiltinESMExports();
-      const { runBackup } = await import("@aihot/backend/operations/backup");
-      const { getBoss, stopBoss } = await import("@aihot/backend/jobs/queue");
-      const { closeDb } = await import("@aihot/backend/db");
+      const { runBackup } = await import("@baoxian-news/backend/operations/backup");
+      const { getBoss, stopBoss } = await import("@baoxian-news/backend/jobs/queue");
+      const { closeDb } = await import("@baoxian-news/backend/db");
       globalThis.fetch = async (input, init) => {
         assert.equal(new URL(input).origin, "https://backup.invalid");
         for await (const chunk of init.body) {} // consume the real dump/archive, never send it outside
@@ -257,7 +257,7 @@ for (const phase of ["pg_dump", "tar"] as const) {
       });
       process.once("SIGTERM", async () => { await stopBoss(); await closeDb(); process.exit(0); });
       await boss.send(name, {});
-    `], { cwd: path.resolve(import.meta.dirname, ".."), env: { ...process.env, AIHOT_DATA_DIR: config.dataDir }, detached: true, stdio: ["ignore", "ignore", "pipe", "ipc"] });
+    `], { cwd: path.resolve(import.meta.dirname, ".."), env: { ...process.env, BAOXIAN_NEWS_DATA_DIR: config.dataDir }, detached: true, stdio: ["ignore", "ignore", "pipe", "ipc"] });
     let stderr = "";
     child.stderr!.on("data", chunk => { stderr += String(chunk); });
     child.on("message", message => messages.push(message as typeof messages[number]));

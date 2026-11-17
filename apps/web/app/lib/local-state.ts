@@ -4,10 +4,10 @@
 import { useEffect, useSyncExternalStore } from "react";
 
 export const KEYS = {
-  read: "aihot-read-items",
-  theme: "aihot-theme",
-  font: "aihot-font",
-  recentSearches: "aihot-recent-searches",
+  read: "baoxian-news-read-items",
+  theme: "baoxian-news-theme",
+  font: "baoxian-news-font",
+  recentSearches: "baoxian-news-recent-searches",
 } as const;
 
 const READ_LIMIT = 5000;

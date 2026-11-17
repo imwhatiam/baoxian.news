@@ -2,10 +2,10 @@
 import "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { closeDb } from "@aihot/backend/db";
-import { modelsOverview, switchModel } from "@aihot/backend/admin/models";
-import { CAPABILITIES, capabilityAcceptsModel, modelFor } from "@aihot/backend/editorial/models";
-import { MODELS } from "@aihot/backend/providers/llm";
+import { closeDb } from "@baoxian-news/backend/db";
+import { modelsOverview, switchModel } from "@baoxian-news/backend/admin/models";
+import { CAPABILITIES, capabilityAcceptsModel, modelFor } from "@baoxian-news/backend/editorial/models";
+import { MODELS } from "@baoxian-news/backend/providers/llm";
 
 after(closeDb);
 

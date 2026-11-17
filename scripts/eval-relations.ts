@@ -5,11 +5,11 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { REPO_ROOT } from "@aihot/backend/config";
-import { closeDb, sql } from "@aihot/backend/db";
-import { PAIR_SYSTEM, PairSchema, RELATE_PROMPT_VERSION, pairUser } from "@aihot/backend/events/relate";
-import { chatJson } from "@aihot/backend/providers/llm";
-import { completeReceipt, failedReceiptId } from "@aihot/backend/providers/receipts";
+import { REPO_ROOT } from "@baoxian-news/backend/config";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { PAIR_SYSTEM, PairSchema, RELATE_PROMPT_VERSION, pairUser } from "@baoxian-news/backend/events/relate";
+import { chatJson } from "@baoxian-news/backend/providers/llm";
+import { completeReceipt, failedReceiptId } from "@baoxian-news/backend/providers/receipts";
 import {
   DEFAULT_RELATION_THRESHOLDS,
   parseRelationGoldJsonl,

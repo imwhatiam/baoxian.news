@@ -5,9 +5,9 @@ import "./setup.ts";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { after, test } from "node:test";
-import { config } from "@aihot/backend/config";
-import { extractFromUrl, pageFetchable, readable } from "@aihot/backend/content/extract";
-import { fetchRss } from "@aihot/backend/sources/rss";
+import { config } from "@baoxian-news/backend/config";
+import { extractFromUrl, pageFetchable, readable } from "@baoxian-news/backend/content/extract";
+import { fetchRss } from "@baoxian-news/backend/sources/rss";
 
 const { MockAgent, getGlobalDispatcher, setGlobalDispatcher } = createRequire(new URL("../packages/backend/package.json", import.meta.url))("undici");
 const originalDispatcher = getGlobalDispatcher();

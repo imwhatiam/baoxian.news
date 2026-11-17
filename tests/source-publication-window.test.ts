@@ -7,12 +7,12 @@ import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { after, test } from "node:test";
-import { config } from "@aihot/backend/config";
-import { closeDb, sql } from "@aihot/backend/db";
-import { stopBoss } from "@aihot/backend/jobs/queue";
-import { collectSource } from "@aihot/backend/sources/collect";
-import { previewSource, previewStoredSource } from "@aihot/backend/admin/sources";
-import { upsertMaterial } from "@aihot/backend/content/materials";
+import { config } from "@baoxian-news/backend/config";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { stopBoss } from "@baoxian-news/backend/jobs/queue";
+import { collectSource } from "@baoxian-news/backend/sources/collect";
+import { previewSource, previewStoredSource } from "@baoxian-news/backend/admin/sources";
+import { upsertMaterial } from "@baoxian-news/backend/content/materials";
 
 const T = tag();
 const now = Date.now();
@@ -205,7 +205,7 @@ test("initial import does not admit archives outside its month limit after detai
   const mode = `authoritative-first-${T}`;
   const sourceConfig = {
     url: `${base}/list/${mode}`, itemSelector: "li", titleSelector: "a", linkSelector: "a", publishedAtSelector: "time",
-    _aihot: { initialBackfillLimit: 30, initialBackfillMonths: 1 },
+    _baoxian_news: { initialBackfillLimit: 30, initialBackfillMonths: 1 },
     detail: { maxFetches: 10, publishedAtSelector: 'meta[name="original-publication"]', publishedAtAuthoritative: true },
   };
   await sql`INSERT INTO sources (id, name, kind, config, tier, participation_mode, next_fetch_at)

@@ -60,6 +60,10 @@ docker compose --profile https up -d --build
 
 ### 更新
 
+这一版把 aihot 这个旧名字从代码和部署里全部换成 baoxian-news。环境变量前缀 `AIHOT_` 改为 `BAOXIAN_NEWS_`（`DATA_DIR`、`RELEASE`、`CREDENTIALS_DIR`、`ENVIRONMENT`），自己维护的 `.env` 或 compose 要同步改，否则读不到原值。包名从 `@aihot/*` 改为 `@baoxian-news/*`，只影响二次开发。Compose 项目名从 `aihot` 改为 `baoxian-news`，卷名随之变成 `baoxian-news_db`、`baoxian-news_data`、`baoxian-news_caddy`；数据库用户和库名也从 `aihot` 改为 `baoxian_news`。已有部署要在旧容器里先改名，再把卷挂到新项目名下，例如 `ALTER ROLE aihot RENAME TO baoxian_news; ALTER DATABASE aihot RENAME TO baoxian_news;`，或者保留旧库名，把 `POSTGRES_USER`、`POSTGRES_DB`、`DATABASE_URL` 指回 `aihot`。发布数据里报告和事件的 `links.aihot` 字段改名为 `links.site`，外部读取方要跟着改；库里已有的旧报告不批量改写，没有代码再读旧字段。
+
+信源配置里的 `_aihot` 键改名为 `_baoxian_news`（初次回溯条数、月数等设置在上面）。发布迁移不能回填数据，升级后跑一次改名脚本，可重复执行：`docker compose run --rm setup node scripts/rename-source-config-key.ts`。不跑的话那些信源的初次回溯设置会被当成没配。
+
 新增选填的 `PRIVATE_FEED_HOSTS`：信源订阅或列表地址用自建在内网的服务（比如 RSSHub）时，把它的主机名写进去，不必再打开整站的 `ALLOW_PRIVATE_NETWORK_FETCH`，用法见 [信源](sources.md)。不设置时行为不变；无需数据库迁移。
 
 周报、月报的周期内，应有日报齐全且原始正文条目全部为空时，自动跳过该期，避免每半小时重复报错；归档里不会新增空周报或月报。首个周期从全站最早日报开始检查；没有可汇总条目时，若缺失日报、原有条目后来无法公开或正在人工更正，仍保留原有错误。无需数据库迁移或配置修改，升级后下次定时检查生效。
@@ -103,7 +107,7 @@ docker compose run --rm setup && docker compose up -d
 
 #### 导航里可以不放某些入口
 
-没有迁移，没有新环境变量。`site/site.ts` 多了 `NAV.hidden`（目前只支持热点榜 `"/hot"` 和主题 `"/topics"`，见 [把它改成你的行业](customize.md)）；框架从 `@aihot/site` 读它，**自己维护 `site/site.ts` 的站，合并时照模板加上 `NAV`**，不加通不过类型检查。模板里是空的，导航和原来一样；隐藏入口不会关闭页面或公开接口。
+没有迁移，没有新环境变量。`site/site.ts` 多了 `NAV.hidden`（目前只支持热点榜 `"/hot"` 和主题 `"/topics"`，见 [把它改成你的行业](customize.md)）；框架从 `@baoxian-news/site` 读它，**自己维护 `site/site.ts` 的站，合并时照模板加上 `NAV`**，不加通不过类型检查。模板里是空的，导航和原来一样；隐藏入口不会关闭页面或公开接口。
 
 #### 原帖展示与引擎同步（2026 年 10 月 6 日）
 
@@ -141,7 +145,7 @@ MCP 的 `subscriptions/listen` 现在立即返回 HTTP 404 和 JSON-RPC `-32601 
   - `SITE.psb`：可选的公安备案号，未办理或不适用时填 `null`。
   - `ABOUT.lead` 里 `{sources}` 两边不再写空格，页面会自动加。
 - `site/models.ts`：评分调用参数现在由具名预设的 `scoreCall` 配置；保留 `glm-5.3-flash-selection` 时同步示例中的温度、输出额度和超时。已有自定义模型没写这一项时沿用引擎默认值。
-- `site/models.ts` 的 `ModelPreset` 和 `site/site.ts` 的 `Founder` 类型统一从 `@aihot/contracts/site-config` 导入，原有站点配置值保留；自定义过这两个文件时同步类型导入，避免漏掉引擎新增的可选字段。
+- `site/models.ts` 的 `ModelPreset` 和 `site/site.ts` 的 `Founder` 类型统一从 `@baoxian-news/contracts/site-config` 导入，原有站点配置值保留；自定义过这两个文件时同步类型导入，避免漏掉引擎新增的可选字段。
 - 数据库迁移遇到正在导出的 `pg_dump` 会先等待，最长与 worker 排空时间相同；超时后在执行这条迁移前退出，等导出结束后重跑更新命令。其他占锁仍快速报错。
 - 迁移会删除已停用的 `translation_attempts.request_tag` 列；翻译正文、尝试记录和付费回执保留。来源发布时间的原始精度另行保存，旧资料无法确定的精度保持未知，不把零点自动当作来源只写了日期。
 - `site/models.ts`：推理模型的额度改成明确配置。默认模型设 `LLM_REASONING_TOKENS`，具名模型写 `reasoningTokens`。原来只有名字以 `-think` 结尾的具名模型会多给 4000，这个做法去掉了；自己加过这类模型的，补上 `reasoningTokens: 4000` 才保持原来的额度。推理模型把额度用光时，报错会写明 `finish_reason=length` 和该改哪一项。
@@ -221,14 +225,14 @@ MCP 的 `subscriptions/listen` 现在立即返回 HTTP 404 和 JSON-RPC `-32601 
 
 在 `.env` 里配置 `DB_BACKUP_STORE_*`（任何 S3 兼容的对象存储），每天 04:10 自动备份到那里。`DB_BACKUP_STORE_SECRET_ID`、`DB_BACKUP_STORE_SECRET_KEY`、`DB_BACKUP_STORE_BUCKET`、`DB_BACKUP_STORE_REGION` 四项都要填；不填 `DB_BACKUP_STORE_DOMAIN` 时按腾讯云 COS 拼地址（`<桶名>.cos.<地域>.myqcloud.com`），用其他 S3 兼容存储时，把这个存储桶的访问域名（含桶名，例如 AWS S3 的 `<桶名>.s3.<地域>.amazonaws.com`）填进 `DB_BACKUP_STORE_DOMAIN`。
 
-一次完整备份包含同一时间戳的数据库 `.dump` 和文件包 `.tar.gz`，文件名取自数据库名：Docker 里数据库叫 `aihot`，所以是 `aihot-<时间>.dump` 和 `aihot-files-<时间>.tar.gz`。文件包保留 `uploads/` 以及仍存本地的 `feedback-screenshots/`，不包含图片缓存或本地备份目录。已经转发到外部群聊的图片只保留数据库中的外部引用，文件包不保存那些图片。
+一次完整备份包含同一时间戳的数据库 `.dump` 和文件包 `.tar.gz`，文件名取自数据库名：Docker 里数据库叫 `baoxian_news`，所以是 `baoxian-news-<时间>.dump` 和 `baoxian-news-files-<时间>.tar.gz`。文件包保留 `uploads/` 以及仍存本地的 `feedback-screenshots/`，不包含图片缓存或本地备份目录。已经转发到外部群聊的图片只保留数据库中的外部引用，文件包不保存那些图片。
 
-恢复时同时取回这一对文件：使用与数据库版本兼容的 `pg_restore` 将 `.dump` 恢复到空数据库，再把文件包解压到数据目录根目录（Docker 中为 `/data`，非 Docker 使用 `AIHOT_DATA_DIR`，默认 `.data`），保留包内的子目录结构，并确保运行进程可读取这些文件。只恢复数据库不能找回仍由 `local:` 引用的反馈截图；旧备份中没有包含的文件也无法凭数据库引用恢复。
+恢复时同时取回这一对文件：使用与数据库版本兼容的 `pg_restore` 将 `.dump` 恢复到空数据库，再把文件包解压到数据目录根目录（Docker 中为 `/data`，非 Docker 使用 `BAOXIAN_NEWS_DATA_DIR`，默认 `.data`），保留包内的子目录结构，并确保运行进程可读取这些文件。只恢复数据库不能找回仍由 `local:` 引用的反馈截图；旧备份中没有包含的文件也无法凭数据库引用恢复。
 
 下面的手动导出只包含数据库，不包含上述附件目录：
 
 ```bash
-docker compose exec -T db pg_dump -U aihot aihot | gzip > myhot-$(date +%F).sql.gz
+docker compose exec -T db pg_dump -U baoxian_news baoxian_news | gzip > myhot-$(date +%F).sql.gz
 ```
 
 数据都在三个 Docker 卷里：`db`（数据库）、`data`（上传的图片、图片缓存、本地备份）、`caddy`（证书）。`docker compose down` 不会删除它们；`docker compose down -v` 会。
@@ -277,7 +281,7 @@ API_BASE_URL=http://127.0.0.1:3001
 ```bash
 node --env-file=.env scripts/migrate.ts
 node --env-file=.env scripts/seed.ts
-npm run build -w @aihot/web
+npm run build -w @baoxian-news/web
 
 NODE_ENV=production node --env-file=.env apps/api/src/main.ts          # 接口，3001 端口
 NODE_ENV=production node --env-file=.env apps/worker/src/main.ts       # 后台任务

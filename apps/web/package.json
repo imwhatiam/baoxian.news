@@ -1,5 +1,5 @@
 {
-  "name": "@aihot/web",
+  "name": "@baoxian-news/web",
   "private": true,
   "type": "module",
   "exports": {
@@ -12,9 +12,9 @@
     "typecheck": "react-router typegen && tsc -p ."
   },
   "dependencies": {
-    "@aihot/contracts": "*",
-    "@aihot/industry": "*",
-    "@aihot/site": "*",
+    "@baoxian-news/contracts": "*",
+    "@baoxian-news/industry": "*",
+    "@baoxian-news/site": "*",
     "@react-router/node": "8.4.0",
     "highlight.js": "11.12.0",
     "isbot": "5.2.2",

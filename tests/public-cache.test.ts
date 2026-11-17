@@ -3,10 +3,10 @@
 import { tag } from './setup.ts';
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
-import { sql, closeDb } from '@aihot/backend/db';
-import { stopBoss } from '@aihot/backend/jobs/queue';
-import { publishArticle } from '@aihot/backend/publication/publish';
-import { upsertMaterial } from '@aihot/backend/content/materials';
+import { sql, closeDb } from '@baoxian-news/backend/db';
+import { stopBoss } from '@baoxian-news/backend/jobs/queue';
+import { publishArticle } from '@baoxian-news/backend/publication/publish';
+import { upsertMaterial } from '@baoxian-news/backend/content/materials';
 import { buildApp } from '../apps/api/src/app.ts';
 
 const app = await buildApp();

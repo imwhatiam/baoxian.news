@@ -5,7 +5,7 @@
 // composite or explicitly withdrawn (groupingEvidenceCondition). Selected reports are reading context
 // for READING_DAYS: a reader who saw a launch in 精选 still knows it when its maker introduces it again.
 import { sql } from "../db.ts";
-import { beijingDate } from "@aihot/contracts/time";
+import { beijingDate } from "@baoxian-news/contracts/time";
 import { sha256 } from "../lib/ids.ts";
 import { embeddingsAvailable, ensureEmbeddings } from "../providers/embeddings.ts";
 import { GROUP_BODY_CHARS, lexicalSimilarity, reportText, type CandidateView, type ReportView, type ReadingContext } from "./relate.ts";

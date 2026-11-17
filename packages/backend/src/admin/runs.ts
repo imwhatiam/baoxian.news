@@ -1,7 +1,7 @@
 // Runs view: task timeline, queue backlog, source lag, error classes, process
 // heartbeats, and the receipts whose outcome needs an operator (resolved in
 // operations/recover.ts).
-import type { AdminRuns, BeforeJson } from "@aihot/contracts/admin";
+import type { AdminRuns, BeforeJson } from "@baoxian-news/contracts/admin";
 import { sql } from "../db.ts";
 import type { Heartbeat } from "../operations/heartbeat.ts";
 import { audit } from "../audit.ts";

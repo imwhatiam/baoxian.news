@@ -1,6 +1,6 @@
 // Item detail and Markdown export, both behind the same visibility and licence rules.
-import type { OutlineEntry, SiteItemDetail, StoryRef } from "@aihot/contracts/site";
-import { ITEM_COPY, SITE } from "@aihot/site";
+import type { OutlineEntry, SiteItemDetail, StoryRef } from "@baoxian-news/contracts/site";
+import { ITEM_COPY, SITE } from "@baoxian-news/site";
 import { bodyToMarkdown } from "../content/markdown.ts";
 import { sql } from "../db.ts";
 import { stripTagMarkup } from "../lib/text.ts";

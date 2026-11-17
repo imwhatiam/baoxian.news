@@ -3,7 +3,7 @@
 // (/all?q=…). Below the field: this browser's recent searches and what is hot now.
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Form, Link, useLocation, useNavigation } from "react-router";
-import type { SearchSuggestions } from "@aihot/contracts/site";
+import type { SearchSuggestions } from "@baoxian-news/contracts/site";
 import { IconClose, IconSearch } from "../../components/icons";
 import { addRecentSearch, clearRecentSearches, useRecentSearches } from "../../lib/local-state";
 import { useModal } from "../../components/ui/modal";

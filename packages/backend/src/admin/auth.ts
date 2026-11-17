@@ -7,7 +7,7 @@ import { config, credential } from "../config.ts";
 import { sql } from "../db.ts";
 import { sha256 } from "../lib/ids.ts";
 
-export const SESSION_COOKIE = "aihot_admin";
+export const SESSION_COOKIE = "baoxian_news_admin";
 export const SESSION_DAYS = 30;
 
 export interface AdminPrincipal {

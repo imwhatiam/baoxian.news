@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router";
 import { IntentLink } from "../ui/IntentLink";
-import { SITE } from "@aihot/site";
-import { Wordmark } from "@aihot/site/brand/Logo.tsx";
+import { SITE } from "@baoxian-news/site";
+import { Wordmark } from "@baoxian-news/site/brand/Logo.tsx";
 import { sidebar, sidebarIsActive, type NavItem } from "./nav";
 import { ThemeSwitch } from "./ThemeSwitch";
 import { Filings } from "./Filings";

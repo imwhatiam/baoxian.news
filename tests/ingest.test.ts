@@ -2,9 +2,9 @@
 import "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { IngestError, ingestItems } from "@aihot/backend/ingest/items";
-import { stopBoss } from "@aihot/backend/jobs/queue";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { IngestError, ingestItems } from "@baoxian-news/backend/ingest/items";
+import { stopBoss } from "@baoxian-news/backend/jobs/queue";
 import { tag } from "./setup.ts";
 
 after(async () => {

@@ -1,6 +1,6 @@
-import { pageMeta } from "@aihot/web/lib/seo";
-import { PhoneBar } from "@aihot/web/components/shell/PhoneBar";
-import type { Screen } from "@aihot/web/components/shell/screens";
+import { pageMeta } from "@baoxian-news/web/lib/seo";
+import { PhoneBar } from "@baoxian-news/web/components/shell/PhoneBar";
+import type { Screen } from "@baoxian-news/web/components/shell/screens";
 import { CHAPTERS, TIMELINE } from "../data";
 import { Timeline } from "./Timeline";
 

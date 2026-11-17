@@ -5,8 +5,8 @@
 import "./setup.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { dailyCollectAt } from "@aihot/backend/sources/collect";
-import { analysisStartAfter } from "@aihot/backend/jobs/content";
+import { dailyCollectAt } from "@baoxian-news/backend/sources/collect";
+import { analysisStartAfter } from "@baoxian-news/backend/jobs/content";
 
 test("a daily source waits for the daily collection instant, not a day after its last read", () => {
   const at = (iso: string) => dailyCollectAt(new Date(iso)).toISOString();

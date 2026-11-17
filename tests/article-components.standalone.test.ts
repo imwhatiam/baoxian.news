@@ -5,10 +5,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import * as cheerio from "cheerio";
-import { readable } from "@aihot/backend/content/extract";
-import { unsupportedConfig } from "@aihot/backend/sources/config-keys";
-import { bodyToMarkdown } from "@aihot/backend/content/markdown";
-import { shield, unshield } from "@aihot/backend/editorial/translate";
+import { readable } from "@baoxian-news/backend/content/extract";
+import { unsupportedConfig } from "@baoxian-news/backend/sources/config-keys";
+import { bodyToMarkdown } from "@baoxian-news/backend/content/markdown";
+import { shield, unshield } from "@baoxian-news/backend/editorial/translate";
 
 const prose = "The article explains how to maintain software, with practical examples and measurements. ".repeat(6);
 const page = (content: string) => `<html><head><title>Maintenance</title></head><body><article><h1>Maintenance</h1><p>${prose}</p>${content}<p>${prose}</p></article></body></html>`;

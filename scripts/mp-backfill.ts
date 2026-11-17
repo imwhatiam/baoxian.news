@@ -10,16 +10,16 @@
 // 入库走 upsertMaterial（via=import、backfill=reported-backfill），已知文章按 identity_key 跳过，
 // 所以重复执行不会产生重复数据。
 import { parseArgs } from "node:util";
-import { beijingDate } from "@aihot/contracts/time";
-import { closeDb, sql } from "@aihot/backend/db";
-import { upsertMaterial } from "@aihot/backend/content/materials";
-import { sanitizeBody } from "@aihot/backend/content/sanitize";
-import { stripTags } from "@aihot/backend/lib/text";
-import { identityKeyForUrl } from "@aihot/backend/lib/url";
-import { queueProcessing } from "@aihot/backend/jobs/content";
-import { stopBoss } from "@aihot/backend/jobs/queue";
-import { mpArticle, mpHistory, type MpPost } from "@aihot/backend/providers/dajiala";
-import { fetchPageBody } from "@aihot/backend/sources/mp";
+import { beijingDate } from "@baoxian-news/contracts/time";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { upsertMaterial } from "@baoxian-news/backend/content/materials";
+import { sanitizeBody } from "@baoxian-news/backend/content/sanitize";
+import { stripTags } from "@baoxian-news/backend/lib/text";
+import { identityKeyForUrl } from "@baoxian-news/backend/lib/url";
+import { queueProcessing } from "@baoxian-news/backend/jobs/content";
+import { stopBoss } from "@baoxian-news/backend/jobs/queue";
+import { mpArticle, mpHistory, type MpPost } from "@baoxian-news/backend/providers/dajiala";
+import { fetchPageBody } from "@baoxian-news/backend/sources/mp";
 
 /** One page holds ten pushes of one to eight posts each, so 50 posts need at most five pages. */
 const MAX_PAGES = 12;

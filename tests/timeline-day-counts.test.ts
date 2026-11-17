@@ -1,9 +1,9 @@
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { beijingDate, beijingMidnight } from "@aihot/contracts/time";
-import { countTimelineDays, loadTimeline } from "@aihot/backend/publication/timeline";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { beijingDate, beijingMidnight } from "@baoxian-news/contracts/time";
+import { countTimelineDays, loadTimeline } from "@baoxian-news/backend/publication/timeline";
 
 after(closeDb);
 const reference = (grouped: readonly { anchor: number }[], days: ReadonlySet<string>) => {

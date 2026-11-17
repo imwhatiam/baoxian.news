@@ -2,7 +2,7 @@
 
 把 JavaScript 渲染的页面（Angular、React、Vue）渲染成 HTML，给采集器补正文用。不对外开端口。
 
-它的位置在本机已经接好了：`.env` 里有 `RENDER_URL=http://renderer:3000/render`、`RENDER_ALLOW_HOSTS=nfra.gov.cn`，api 和 worker 都在用；`aihot-renderer-1` 容器常驻，空闲约 240MB 内存。
+它的位置在本机已经接好了：`.env` 里有 `RENDER_URL=http://renderer:3000/render`、`RENDER_ALLOW_HOSTS=nfra.gov.cn`，api 和 worker 都在用；`baoxian-news-renderer-1` 容器常驻，空闲约 240MB 内存。
 
 ## 起服务
 

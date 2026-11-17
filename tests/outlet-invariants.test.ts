@@ -3,11 +3,11 @@
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { upsertMaterial } from "@aihot/backend/content/materials";
-import { setSeoIndexed } from "@aihot/backend/admin/content";
-import { publishArticle } from "@aihot/backend/publication/publish";
-import { stopBoss } from "@aihot/backend/jobs/queue";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { upsertMaterial } from "@baoxian-news/backend/content/materials";
+import { setSeoIndexed } from "@baoxian-news/backend/admin/content";
+import { publishArticle } from "@baoxian-news/backend/publication/publish";
+import { stopBoss } from "@baoxian-news/backend/jobs/queue";
 import { buildApp } from "../apps/api/src/app.ts";
 
 const key = tag();

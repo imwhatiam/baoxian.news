@@ -1,18 +1,18 @@
 // /api/admin/*: queries are GET, creation POST, edits PATCH, business commands POST.
 // Every route goes through adminHandler (session + CSRF); manual changes are audited in the modules.
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import type { AdminSourceUpdate } from "@aihot/contracts/admin";
-import { actorOf } from "@aihot/backend/admin/auth";
-import { navCounts } from "@aihot/backend/admin/navigation";
-import { listAudit } from "@aihot/backend/audit";
-import { importSelectBenchRun, listSelectBenchRuns, selectBenchRun } from "@aihot/backend/admin/selectbench";
-import { modelsOverview, switchModel } from "@aihot/backend/admin/models";
-import { contentChain, overrideFields, rerun, searchContent, setSeoIndexed, setVisibility } from "@aihot/backend/admin/content";
-import { detachFromFact, mergeStories } from "@aihot/backend/events/corrections";
-import { requeueFailedArticles, runsOverview } from "@aihot/backend/admin/runs";
-import { releaseReceipt } from "@aihot/backend/operations/recover";
-import { replaceContactQr, settingsOverview, updateBudget } from "@aihot/backend/admin/settings";
-import { createSource, fetchNow, listSources, previewSource, previewStoredSource, sourceDetail, updateSource } from "@aihot/backend/admin/sources";
+import type { AdminSourceUpdate } from "@baoxian-news/contracts/admin";
+import { actorOf } from "@baoxian-news/backend/admin/auth";
+import { navCounts } from "@baoxian-news/backend/admin/navigation";
+import { listAudit } from "@baoxian-news/backend/audit";
+import { importSelectBenchRun, listSelectBenchRuns, selectBenchRun } from "@baoxian-news/backend/admin/selectbench";
+import { modelsOverview, switchModel } from "@baoxian-news/backend/admin/models";
+import { contentChain, overrideFields, rerun, searchContent, setSeoIndexed, setVisibility } from "@baoxian-news/backend/admin/content";
+import { detachFromFact, mergeStories } from "@baoxian-news/backend/events/corrections";
+import { requeueFailedArticles, runsOverview } from "@baoxian-news/backend/admin/runs";
+import { releaseReceipt } from "@baoxian-news/backend/operations/recover";
+import { replaceContactQr, settingsOverview, updateBudget } from "@baoxian-news/backend/admin/settings";
+import { createSource, fetchNow, listSources, previewSource, previewStoredSource, sourceDetail, updateSource } from "@baoxian-news/backend/admin/sources";
 import { sendProblem } from "../http/respond.ts";
 import { adminHandler } from "./admin-auth.ts";
 
@@ -54,7 +54,7 @@ export function registerAdmin(app: FastifyInstance) {
   app.post("/api/admin/content/:id/seo", adminHandler(async (req, reply, admin) => orNotFound(req, reply, await setSeoIndexed(param(req, "id"), body(req) as never, actorOf(admin)))));
   app.post("/api/admin/content/:id/override", adminHandler(async (req, _reply, admin) => overrideFields(param(req, "id"), body(req) as never, actorOf(admin))));
   app.post("/api/admin/content/:id/rerun", adminHandler(async (req, reply, admin) => {
-    const b = body<import("@aihot/contracts/admin").AdminRerun>(req);
+    const b = body<import("@baoxian-news/contracts/admin").AdminRerun>(req);
     const requestId = String(req.headers["idempotency-key"] ?? "");
     return orNotFound(req, reply, await rerun(param(req, "id"), b.step, requestId, actorOf(admin), { preview: b.preview, version: b.version }));
   }));

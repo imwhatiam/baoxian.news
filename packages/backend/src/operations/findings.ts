@@ -1,7 +1,7 @@
 // What the operations checks report: one finding per problem, worded for whoever has to act.
 // There is no external channel any more: alerts are written to the process log and shown in the
 // admin's 运行 page, and nothing leaves the process.
-import { beijingStamp } from "@aihot/contracts/time";
+import { beijingStamp } from "@baoxian-news/contracts/time";
 
 /** How urgent: readers affected now, money or the owner's hands today, or a follow-up that can wait. */
 export type Level = "now" | "today" | "later";

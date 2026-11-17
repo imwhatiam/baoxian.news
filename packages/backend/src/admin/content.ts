@@ -4,8 +4,8 @@
 // overrides with a version check, are re-projected to every public exit, and are audited.
 import { z } from "zod";
 import { correctReportClassification } from "../reports/correct.ts";
-import type { AdminContentChain, AdminContentRow, AdminPublication, AdminPresentationRefresh, AdminRerun, BeforeJson } from "@aihot/contracts/admin";
-import { ARTICLE_ID_PATTERN, CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
+import type { AdminContentChain, AdminContentRow, AdminPublication, AdminPresentationRefresh, AdminRerun, BeforeJson } from "@baoxian-news/contracts/admin";
+import { ARTICLE_ID_PATTERN, CATEGORY_KEYS } from "@baoxian-news/contracts/taxonomy";
 import { sql, type Db, type Tx } from "../db.ts";
 import { enqueue, QUEUES } from "../jobs/queue.ts";
 import { needsGrouping, queueProcessing } from "../jobs/content.ts";
@@ -113,9 +113,9 @@ export async function previewPublicationDateCorrection(id: string, publishedAt: 
 async function processingSettled(tx: Tx, a: PublicationDateMaterial): Promise<boolean> {
   if (!["analyzed", "blocked", "skipped"].includes(a.processing_state)) return false;
   if (a.grouping_status === "complete") return true;
-  const [analysis] = await tx<{ relevance: string | null }[]>`SELECT relevance FROM analyses
+  const [analysis] = await tx<{ relevance: string | null; category: string | null }[]>`SELECT relevance, category FROM analyses
     WHERE article_id=${a.id} AND input_revision=${a.revision} ORDER BY id DESC LIMIT 1`;
-  return !needsGrouping({ participationMode: a.participation_mode, historical: isHistorical(a), relevance: analysis?.relevance });
+  return !needsGrouping({ participationMode: a.participation_mode, historical: isHistorical(a), relevance: analysis?.relevance, category: analysis?.category });
 }
 
 interface PublicationDateCorrectionResult {

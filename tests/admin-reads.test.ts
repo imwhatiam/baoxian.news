@@ -2,8 +2,8 @@
 import "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { listSources } from "@aihot/backend/admin/sources";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { listSources } from "@baoxian-news/backend/admin/sources";
 
 after(closeDb);
 

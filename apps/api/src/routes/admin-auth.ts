@@ -1,9 +1,9 @@
 // Admin sign-in and the /api/admin guard. Public routes never read the session.
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { ZodError } from "zod";
-import type { AdminMe } from "@aihot/contracts/admin";
-import { DEPLOYMENT } from "@aihot/site";
-import { config } from "@aihot/backend/config";
+import type { AdminMe } from "@baoxian-news/contracts/admin";
+import { DEPLOYMENT } from "@baoxian-news/site";
+import { config } from "@baoxian-news/backend/config";
 import {
   cookie,
   endSession,
@@ -14,7 +14,7 @@ import {
   SESSION_DAYS,
   sessionPrincipal,
   type AdminPrincipal,
-} from "@aihot/backend/admin/auth";
+} from "@baoxian-news/backend/admin/auth";
 import { sendProblem } from "../http/respond.ts";
 
 /** Cookies are Secure whenever the site is served over HTTPS. */

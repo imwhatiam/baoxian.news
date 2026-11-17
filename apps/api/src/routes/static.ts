@@ -4,12 +4,12 @@ import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { EDITION_TIMES, SITE } from "@aihot/site";
-import { CONTACT_ALIASES } from "@aihot/contracts/http-policy";
-import { REPO_ROOT, config } from "@aihot/backend/config";
+import { EDITION_TIMES, SITE } from "@baoxian-news/site";
+import { CONTACT_ALIASES } from "@baoxian-news/contracts/http-policy";
+import { REPO_ROOT, config } from "@baoxian-news/backend/config";
 import { sendTextWithEtag } from "../http/respond.ts";
-import { loadSitemap } from "@aihot/backend/publication/sitemap";
-import { loadContact } from "@aihot/backend/site/contact";
+import { loadSitemap } from "@baoxian-news/backend/publication/sitemap";
+import { loadContact } from "@baoxian-news/backend/site/contact";
 
 const PUBLIC = path.join(REPO_ROOT, "site/public");
 /** The site's brand files (site/brand/), and how long its icons are cached. */

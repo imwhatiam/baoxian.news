@@ -2,12 +2,12 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import { IntentLink } from "../components/ui/IntentLink";
 import { Link, useLoaderData, useLocation } from "react-router";
 import type { Route } from "./+types/story";
-import type { StoryDetail, StoryReportView } from "@aihot/contracts/site";
-import { SITE } from "@aihot/site";
+import type { StoryDetail, StoryReportView } from "@baoxian-news/contracts/site";
+import { SITE } from "@baoxian-news/site";
 import { cachedPage, loadOr404 } from "../lib/api.server";
 import { pageReuse } from "../lib/page-reuse";
 import { breadcrumbLd, pageMeta, storyLd, titled } from "../lib/seo";
-import { beijingTime, monthDay } from "@aihot/contracts/time";
+import { beijingTime, monthDay } from "@baoxian-news/contracts/time";
 import { byBeijingDay, monthDayTime, relativeTime } from "../lib/format";
 import { useCurrentSection } from "../lib/motion";
 import { HeatChart } from "../features/story/HeatChart";
@@ -131,7 +131,7 @@ type Filter = "all" | "official" | "selected";
 type Order = "desc" | "asc";
 
 // The report filter and shared reading order, per history entry: back from a report restores the view.
-const viewCache = sessionCache<{ savedAt: number; filter: Filter; order: Order }>("aihot:story-view:", 30 * 60 * 1000);
+const viewCache = sessionCache<{ savedAt: number; filter: Filter; order: Order }>("baoxian-news:story-view:", 30 * 60 * 1000);
 
 export default function StoryPage() {
   const { story } = useLoaderData<typeof loader>();

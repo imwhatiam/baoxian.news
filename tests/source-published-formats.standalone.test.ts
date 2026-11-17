@@ -2,7 +2,7 @@
 // wall-clock timestamps. Both must retain the source zone and reject rolled-over dates and times.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseLooseDate } from "@aihot/backend/sources/dates";
+import { parseLooseDate } from "@baoxian-news/backend/sources/dates";
 
 test("complete day-month-year dates accept the publisher's punctuation", () => {
   assert.equal(parseLooseDate("07 October, 2026", "+04:00")?.toISOString(), "2026-10-06T20:00:00.000Z");

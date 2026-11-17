@@ -1,5 +1,5 @@
 import type { Route } from "./+types/item-original";
-import type { SiteItemDetail } from "@aihot/contracts/site";
+import type { SiteItemDetail } from "@baoxian-news/contracts/site";
 import { cachedPage, loadOr404 } from "../lib/api.server";
 import { pageReuse } from "../lib/page-reuse";
 export { default, handle, headers, meta } from "./item";

@@ -19,6 +19,12 @@ export const CATEGORIES = [
 ] as const satisfies ReadonlyArray<{ key: string; label: string; feedLabel?: string; section: string; guide: string; commentary?: true }>;
 
 /**
+ * 只在各自分类页出现的类别：这些条目不进首页时间线、“全部”列表和搜索，也不参与精选、事件归组、
+ * 热度评选与二次探查、日报周报月报。国际是属地维度，境外市场的消息归档备查，不做运营。
+ */
+export const CATEGORY_LIST_ONLY: string[] = ["international"];
+
+/**
  * 这个行业最受关注的一类发布：保险业没有“新模型”那样统一的发布物，所以设成 null，日报报头不显示这个数。
  * 类别和标签都对上才算；unit 接在数字后面。
  */

@@ -5,8 +5,8 @@
 //   later — other follow-ups: one 09:00 message a day, meant to be handed to the AI. A source's follow-up is
 //           closed on its own: a fix removes it, and one judged not worth fixing is closed with a reason.
 // Findings are written to the process log; the site has no external notification channel.
-import { addDays, beijingAt, beijingDate, beijingDay, beijingStamp, isValidDate } from "@aihot/contracts/time";
-import { ALERTS, EDITION_TIMES } from "@aihot/site";
+import { addDays, beijingAt, beijingDate, beijingDay, beijingStamp, isValidDate } from "@baoxian-news/contracts/time";
+import { ALERTS, EDITION_TIMES } from "@baoxian-news/site";
 import { audit } from "../audit.ts";
 import { sql } from "../db.ts";
 import { duration, formatAlert, formatRecovery, logAlert, type Finding, type Level } from "./findings.ts";

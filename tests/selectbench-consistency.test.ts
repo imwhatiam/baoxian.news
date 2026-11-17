@@ -2,9 +2,9 @@ import "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import Fastify from "fastify";
-import { config } from "@aihot/backend/config";
-import { closeDb, sql } from "@aihot/backend/db";
-import { importSelectBenchRun, selectBenchRun } from "@aihot/backend/admin/selectbench";
+import { config } from "@baoxian-news/backend/config";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { importSelectBenchRun, selectBenchRun } from "@baoxian-news/backend/admin/selectbench";
 import { registerAdmin } from "../apps/api/src/routes/admin.ts";
 
 const app = Fastify({ logger: false });

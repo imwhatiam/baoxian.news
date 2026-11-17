@@ -1,8 +1,8 @@
 // Share images only need public title/summary metadata. Keep the same page visibility rule without
 // loading bodies, translations, related stories or signed media that never appear on these cards.
-import { CATEGORY_LABELS, type CategoryKey } from '@aihot/contracts/taxonomy';
-import { beijingDate } from '@aihot/contracts/time';
-import { ITEM_COPY, withSubject } from '@aihot/site';
+import { CATEGORY_LABELS, type CategoryKey } from '@baoxian-news/contracts/taxonomy';
+import { beijingDate } from '@baoxian-news/contracts/time';
+import { ITEM_COPY, withSubject } from '@baoxian-news/site';
 import type { OgCard } from '../media/og.ts';
 import { sql } from '../db.ts';
 import { hasItemPage, publicSourceName } from './rules.ts';

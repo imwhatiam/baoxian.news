@@ -9,11 +9,11 @@ import './setup.ts';
 import assert from 'node:assert/strict';
 import { after, afterEach, test } from 'node:test';
 import { randomUUID } from 'node:crypto';
-import { sql, closeDb } from '@aihot/backend/db';
-import { config } from '@aihot/backend/config';
-import { installModules, type SitemapEntry } from '@aihot/backend/modules';
-import { loadDiscoveryEntries } from '@aihot/backend/publication/sitemap';
-import { submitIndexNow } from '@aihot/backend/operations/indexnow';
+import { sql, closeDb } from '@baoxian-news/backend/db';
+import { config } from '@baoxian-news/backend/config';
+import { installModules, type SitemapEntry } from '@baoxian-news/backend/modules';
+import { loadDiscoveryEntries } from '@baoxian-news/backend/publication/sitemap';
+import { submitIndexNow } from '@baoxian-news/backend/operations/indexnow';
 
 const originalFetch = globalThis.fetch;
 const originalEnabled = config.indexNowSubmitEnabled;

@@ -9,14 +9,14 @@ import "./setup.ts";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { after, test } from "node:test";
-import { config } from "@aihot/backend/config";
-import { extractFromUrl, pageRules } from "@aihot/backend/content/extract";
-import { sanitizeBody, trimTrailingChrome } from "@aihot/backend/content/sanitize";
-import { unsupportedConfig } from "@aihot/backend/sources/config-keys";
-import { fetchDetail, fetchWebList, fromHtml, fromMarkdown } from "@aihot/backend/sources/web-list";
-import { fetchRss } from "@aihot/backend/sources/rss";
-import { fetchJsonList } from "@aihot/backend/sources/json-list";
-import { noiseFiltered } from "@aihot/backend/sources/filters";
+import { config } from "@baoxian-news/backend/config";
+import { extractFromUrl, pageRules } from "@baoxian-news/backend/content/extract";
+import { sanitizeBody, trimTrailingChrome } from "@baoxian-news/backend/content/sanitize";
+import { unsupportedConfig } from "@baoxian-news/backend/sources/config-keys";
+import { fetchDetail, fetchWebList, fromHtml, fromMarkdown } from "@baoxian-news/backend/sources/web-list";
+import { fetchRss } from "@baoxian-news/backend/sources/rss";
+import { fetchJsonList } from "@baoxian-news/backend/sources/json-list";
+import { noiseFiltered } from "@baoxian-news/backend/sources/filters";
 
 const source = (config: Record<string, unknown>) => ({ id: "test-list", config }) as never;
 

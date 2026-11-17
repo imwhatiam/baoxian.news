@@ -4,9 +4,9 @@ import { pointModels, stub, tag } from "./setup.ts";
 import { analysisStep, SELECTING_SCORE } from "./analysis-steps.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { closeDb } from "@aihot/backend/db";
-import { normalizeAnalysis, runAnalysis, type AnalyzeInputArticle } from "@aihot/backend/editorial/analyze";
-import { isPoolEligible } from "@aihot/backend/publication/rules";
+import { closeDb } from "@baoxian-news/backend/db";
+import { normalizeAnalysis, runAnalysis, type AnalyzeInputArticle } from "@baoxian-news/backend/editorial/analyze";
+import { isPoolEligible } from "@baoxian-news/backend/publication/rules";
 
 let label = "PASS";
 const steps: string[] = [];

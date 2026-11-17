@@ -5,11 +5,11 @@ import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { after, test } from "node:test";
-import { config } from "@aihot/backend/config";
-import { closeDb, sql } from "@aihot/backend/db";
-import { identityKeyFor } from "@aihot/backend/content/materials";
-import { QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
-import { collectSource } from "@aihot/backend/sources/collect";
+import { config } from "@baoxian-news/backend/config";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { identityKeyFor } from "@baoxian-news/backend/content/materials";
+import { QUEUES, stopBoss } from "@baoxian-news/backend/jobs/queue";
+import { collectSource } from "@baoxian-news/backend/sources/collect";
 
 let detailHits = 0;
 let campaign = "first";

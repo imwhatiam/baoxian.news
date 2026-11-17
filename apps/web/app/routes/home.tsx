@@ -1,6 +1,7 @@
 import { redirect, useLoaderData } from "react-router";
 import type { Route } from "./+types/home";
-import type { TimelineResponse } from "@aihot/contracts/site";
+import type { TimelineResponse } from "@baoxian-news/contracts/site";
+import { CATEGORY_LIST_ONLY } from "@baoxian-news/industry/taxonomy";
 import { cachedPage, loadOr404 } from "../lib/api.server";
 import { pageReuse } from "../lib/page-reuse";
 import { filterParams, hasFeedFilters, itemListLd, listPath, pageMeta, readFilters, siteLd } from "../lib/seo";
@@ -20,6 +21,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Search lives on /all; keep the parameters so old links still land on results.
   if (q && q.trim()) throw redirect(`/all${url.search}`);
   const filters = readFilters(url.searchParams);
+  // 只在分类页列出的类别（国际）不进精选流：转到“全部动态”的同一筛选，不给出空页面。
+  if (filters.category && CATEGORY_LIST_ONLY.includes(filters.category)) throw redirect(`/all${url.search}`);
   const upstream = new Headers();
   const data = await loadOr404<TimelineResponse>(listPath("/api/site/timeline", filterParams(filters)), { responseHeaders: upstream, signal: request.signal });
   return cachedPage(60, { data, filters }, upstream);

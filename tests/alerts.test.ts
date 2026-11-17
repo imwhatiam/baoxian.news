@@ -3,16 +3,16 @@
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { upsertMaterial } from "@aihot/backend/content/materials";
-import { getBoss, stopBoss } from "@aihot/backend/jobs/queue";
-import { checkAlerts, collectFindings, providerStops, sendDigest } from "@aihot/backend/operations/alerts";
-import { CAPABILITIES, invalidateModelCache, modelFor, modelRoute, stepsOnService } from "@aihot/backend/editorial/models";
-import { installModules, serverModules } from "@aihot/backend/modules";
-import { MODELS } from "@aihot/backend/providers/llm";
-import { assertAccepted, paidRequest } from "@aihot/backend/providers/receipts";
-import { READER_WORDING } from "@aihot/industry/wording";
-import { runsOverview } from "@aihot/backend/admin/runs";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { upsertMaterial } from "@baoxian-news/backend/content/materials";
+import { getBoss, stopBoss } from "@baoxian-news/backend/jobs/queue";
+import { checkAlerts, collectFindings, providerStops, sendDigest } from "@baoxian-news/backend/operations/alerts";
+import { CAPABILITIES, invalidateModelCache, modelFor, modelRoute, stepsOnService } from "@baoxian-news/backend/editorial/models";
+import { installModules, serverModules } from "@baoxian-news/backend/modules";
+import { MODELS } from "@baoxian-news/backend/providers/llm";
+import { assertAccepted, paidRequest } from "@baoxian-news/backend/providers/receipts";
+import { READER_WORDING } from "@baoxian-news/industry/wording";
+import { runsOverview } from "@baoxian-news/backend/admin/runs";
 
 process.env.COLLECT_ENABLED = "false";
 process.env.MODEL_CALLS_ENABLED = "false";

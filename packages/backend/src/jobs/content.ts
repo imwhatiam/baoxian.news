@@ -5,8 +5,9 @@
 // an article wait and retry with backoff; only a permanent refusal or exhausted retries end in
 // "failed", which the admin re-queues in bulk.
 import type { PgBoss } from "pg-boss";
-import { beijingAt, beijingDate } from "@aihot/contracts/time";
-import { ANALYSIS_TIME } from "@aihot/site";
+import { beijingAt, beijingDate } from "@baoxian-news/contracts/time";
+import { ANALYSIS_TIME } from "@baoxian-news/site";
+import { CATEGORY_LIST_ONLY } from "@baoxian-news/industry/taxonomy";
 import { sql, type Db } from "../db.ts";
 import { extractArticleBody, pageFetchable } from "../content/extract.ts";
 import { analyzeArticle } from "../editorial/analyze.ts";
@@ -109,9 +110,11 @@ export async function queueProcessing(articleId: string, opts: { step?: Step; at
 /**
  * Whether processed material goes on to event grouping: an editorial report its analysis passed
  * (history too, which groupArticle settles without founding events), or a discussion post while it is
- * news. Everything else is finished once processed, and its grouping stays pending.
+ * news. A list-only category (国际) never groups: it is listed only under its own category, so it takes
+ * part in no event, and therefore in no heat ranking or report.
  */
-export function needsGrouping(m: { participationMode: string; historical: boolean; relevance?: string | null }): boolean {
+export function needsGrouping(m: { participationMode: string; historical: boolean; relevance?: string | null; category?: string | null }): boolean {
+  if (CATEGORY_LIST_ONLY.includes(m.category ?? "")) return false;
   return m.participationMode === "editorial" ? m.relevance === "pass" : m.participationMode === "hot_signal" && !m.historical;
 }
 
@@ -167,9 +170,9 @@ async function processRevision(articleId: string, row: NonNullable<Awaited<Retur
     }
     if (result.stale) return { state: "stale" }; // the newer revision has its own job
     await publishArticle(articleId);
-    if (needsGrouping({ participationMode: row.participation_mode, historical: row.historical, relevance: result.output.relevance })) await enqueue(QUEUES.group, { articleId }, { singletonKey: articleId, priority: groupingPriority({ signal: false, historical: row.historical }) });
-    // 二次热度探查：只有过了相关性判断的报道才值得去 Bing 再搜一次（一次约 7 秒）。
-    if (result.output.relevance === "pass") await enqueue(QUEUES.heatProbe, { articleId }, { singletonKey: articleId });
+    if (needsGrouping({ participationMode: row.participation_mode, historical: row.historical, relevance: result.output.relevance, category: result.output.category })) await enqueue(QUEUES.group, { articleId }, { singletonKey: articleId, priority: groupingPriority({ signal: false, historical: row.historical }) });
+    // 二次热度探查：只有过了相关性判断、且不是只在本类列出的报道（国际）才值得去 Bing 再搜一次（一次约 7 秒）。
+    if (result.output.relevance === "pass" && !CATEGORY_LIST_ONLY.includes(result.output.category ?? "")) await enqueue(QUEUES.heatProbe, { articleId }, { singletonKey: articleId });
     await sql`UPDATE articles SET processing_attempts = 0, processing_retry_at = NULL, processing_queued_at = NULL
               WHERE id = ${articleId} AND revision = ${row.revision}`;
     return { state: result.output.relevance };

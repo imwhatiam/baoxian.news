@@ -1,10 +1,10 @@
 import "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, beforeEach, test } from "node:test";
-import { beijingAt } from "@aihot/contracts/time";
-import { closeDb, sql } from "@aihot/backend/db";
-import { getBoss, stopBoss } from "@aihot/backend/jobs/queue";
-import { checkAlerts, collectFindings } from "@aihot/backend/operations/alerts";
+import { beijingAt } from "@baoxian-news/contracts/time";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { getBoss, stopBoss } from "@baoxian-news/backend/jobs/queue";
+import { checkAlerts, collectFindings } from "@baoxian-news/backend/operations/alerts";
 
 const at = (date: string, time = "10:00") => beijingAt(date, time).getTime();
 const key = (date: string) => `report.daily:${date}`;

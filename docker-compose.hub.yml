@@ -1,0 +1,123 @@
+# Deployment with the published images: no source tree needed except this file, .env and deploy/Caddyfile.
+#
+#   docker compose -f docker-compose.hub.yml pull
+#   docker compose -f docker-compose.hub.yml up -d          → http://<host>:3000   (the admin is at /admin)
+#   docker compose -f docker-compose.hub.yml --profile https up -d   → HTTPS for SITE_DOMAIN through Caddy
+#
+# Pin a release with IMAGE_TAG=<date, e.g. 2026-11-17>; without it you follow :latest.
+# Build from the source tree instead with docker-compose.yml (it compiles the same image locally).
+name: baoxian-news
+
+x-app: &app
+  image: ${IMAGE_REPO:-imwhatiam/baoxian-news}:${IMAGE_TAG:-latest}
+  restart: unless-stopped
+
+x-backend: &backend
+  <<: *app
+  env_file: .env
+  environment: &backend-env
+    NODE_ENV: production
+    DATABASE_URL: postgres://baoxian_news:${POSTGRES_PASSWORD:-baoxian_news}@db:5432/baoxian_news
+    BAOXIAN_NEWS_DATA_DIR: /data
+    API_BASE_URL: http://api:3001
+    # No proxy in front limits pushes to /api/ingest/items: the api does (per client and minute; 0 turns it off).
+    INGEST_RATE_LIMIT: ${INGEST_RATE_LIMIT:-10}
+  volumes:
+    - data:/data
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: baoxian_news
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-baoxian_news}
+      POSTGRES_DB: baoxian_news
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baoxian_news -d baoxian_news"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # Applies the database migrations and seeds the demo sources, then exits.
+  setup:
+    <<: *backend
+    restart: "no"
+    command: ["sh", "-c", "node scripts/migrate.ts && node scripts/seed.ts"]
+
+  api:
+    <<: *backend
+    command: ["node", "apps/api/src/main.ts"]
+    environment:
+      <<: *backend-env
+      API_HOST: 0.0.0.0
+      API_PORT: "3001"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+
+  worker:
+    <<: *backend
+    command: ["node", "apps/worker/src/main.ts"]
+    # Let the worker drain backups and paid calls (STOP_TIMEOUT_MS, 470 s), then close its database.
+    # Docker sends SIGTERM to the worker first; after this window it kills the remaining processes.
+    stop_grace_period: 515s
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+
+  web:
+    <<: *app
+    command: ["node", "apps/web/server.ts"]
+    # SSR reads the API over HTTP; backend credentials and stored files stay in api/worker.
+    environment:
+      NODE_ENV: production
+      API_BASE_URL: http://api:3001
+      SITE_URL: ${SITE_URL:-http://localhost:3000}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      BAOXIAN_NEWS_RELEASE: ${BAOXIAN_NEWS_RELEASE:-}
+      WEB_HOST: 0.0.0.0
+      WEB_PORT: "3000"
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_started
+
+  # Renders JavaScript pages (Angular/React/Vue) the collector cannot read directly. Internal only:
+  # no published port, api/worker reach it at http://renderer:3000/render. Off by default; start it with
+  # `docker compose -f docker-compose.hub.yml --profile render up -d renderer`.
+  renderer:
+    profiles: ["render"]
+    image: ${IMAGE_RENDERER_REPO:-imwhatiam/baoxian-news-renderer}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      RENDER_ALLOW_HOSTS: ${RENDER_ALLOW_HOSTS:-}
+      RENDER_TIMEOUT_MS: ${RENDER_TIMEOUT_MS:-30000}
+      RENDER_CONCURRENCY: ${RENDER_CONCURRENCY:-2}
+    shm_size: "1gb"
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy:/data
+    depends_on:
+      - web
+
+volumes:
+  db: {}
+  data: {}
+  caddy: {}

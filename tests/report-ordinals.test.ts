@@ -5,10 +5,10 @@
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import type { ReportKind } from "@aihot/contracts/site";
-import { isoWeekLabel } from "@aihot/contracts/time";
-import { closeDb, sql } from "@aihot/backend/db";
-import { listReports, loadReport, loadReportMonth, loadReportNavigation, reportIndexRows } from "@aihot/backend/publication/reports";
+import type { ReportKind } from "@baoxian-news/contracts/site";
+import { isoWeekLabel } from "@baoxian-news/contracts/time";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { listReports, loadReport, loadReportMonth, loadReportNavigation, reportIndexRows } from "@baoxian-news/backend/publication/reports";
 import { buildApp } from "../apps/api/src/app.ts";
 
 const T = tag();

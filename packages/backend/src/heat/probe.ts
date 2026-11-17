@@ -10,7 +10,8 @@
 import * as cheerio from "cheerio";
 import { config } from "../config.ts";
 import { sql } from "../db.ts";
-import { heatSourceFor, type HeatSource } from "@aihot/industry/heat-sources";
+import { heatSourceFor, type HeatSource } from "@baoxian-news/industry/heat-sources";
+import { CATEGORY_LIST_ONLY } from "@baoxian-news/industry/taxonomy";
 import { setPublicationHeat } from "../publication/items.ts";
 
 /** 一条命中的报道。 */
@@ -154,11 +155,14 @@ async function searchBing(query: string): Promise<SearchHit[]> {
 
 /**
  * 探查一条新闻并落库。重复探查同一条是幂等的：heat_probes 按 article_id 覆盖。
- * 返回 null 表示这条文章没有可用的标题（已删除或为空），不算失败。
+ * 返回 null 表示这条文章没有可用的标题（已删除或为空），或属于只在分类页列出的类别（国际，
+ * 不参与热度评选，探查没有意义），都不算失败。
  */
 export async function probeArticle(articleId: string): Promise<HeatResult | null> {
-  const [article] = await sql<{ title: string }[]>`SELECT title FROM articles WHERE id = ${articleId}`;
+  const [article] = await sql<{ title: string; category: string | null }[]>`
+    SELECT a.title, p.category FROM articles a LEFT JOIN publications p ON p.article_id = a.id WHERE a.id = ${articleId}`;
   if (!article?.title?.trim()) return null;
+  if (CATEGORY_LIST_ONLY.includes(article.category ?? "")) return null;
   const query = heatQuery(article.title);
   if (query.length < 4) return null;
 

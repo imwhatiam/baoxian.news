@@ -2,7 +2,7 @@
 // 网页和后端都读它；改完重新构建（docker compose up --build）即可生效。
 // 域名不在这里：部署时用环境变量 SITE_URL 设置。
 
-import type { Founder } from "@aihot/contracts/site-config";
+import type { Founder } from "@baoxian-news/contracts/site-config";
 
 /**
  * 日报、周报、月报什么时候出（北京时间，HH:mm）：日报收这个时间之前的 24 小时，周报在每个自然周之后的周一出，
@@ -219,7 +219,7 @@ export const CARDS: Record<string, { kicker: string; title: string; subtitle: st
 
 /** 这个部署自己的几处安排（选填）。 */
 export const DEPLOYMENT = {
-  /** 凭据分组文件（models.env、collectors.env……）默认放在哪个目录，相对仓库根目录；环境变量 AIHOT_CREDENTIALS_DIR 优先，都没有就只读环境变量。 */
+  /** 凭据分组文件（models.env、collectors.env……）默认放在哪个目录，相对仓库根目录；环境变量 BAOXIAN_NEWS_CREDENTIALS_DIR 优先，都没有就只读环境变量。 */
   credentialsDir: null as string | null,
   /** 凭据分组的文件名（放在凭据目录下，选填）：没写的分组用“分组名.env”，比如 models.env。 */
   credentialFiles: {} as Partial<Record<string, string>>,

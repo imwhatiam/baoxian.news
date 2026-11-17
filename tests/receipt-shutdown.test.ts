@@ -4,9 +4,9 @@
 import { gate, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { shutdownSignal } from "@aihot/backend/jobs/queue";
-import { completeReceipt, paidRequest, ProviderRejectedError } from "@aihot/backend/providers/receipts";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { shutdownSignal } from "@baoxian-news/backend/jobs/queue";
+import { completeReceipt, paidRequest, ProviderRejectedError } from "@baoxian-news/backend/providers/receipts";
 
 after(closeDb);
 

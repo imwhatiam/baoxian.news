@@ -1,4 +1,4 @@
-import { beijingDate, beijingTime, beijingWeekday, monthDay } from "@aihot/contracts/time";
+import { beijingDate, beijingTime, beijingWeekday, monthDay } from "@baoxian-news/contracts/time";
 
 /** A list cut into runs of the same Beijing day, in the list's own order. */
 export function byBeijingDay<T>(list: readonly T[], at: (entry: T) => string): Array<{ day: string; entries: T[] }> {

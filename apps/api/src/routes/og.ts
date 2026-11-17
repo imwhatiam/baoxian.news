@@ -1,16 +1,16 @@
 // Share images (1200×630 PNG) for pages, items, reports and events. Only public content
 // gets a card; anything else is a real 404.
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { reportDateLabel } from "@aihot/contracts/site";
-import { CATEGORY_LABELS } from "@aihot/contracts/taxonomy";
-import { beijingDate } from "@aihot/contracts/time";
-import { loadItemOgCard, loadItemShare } from "@aihot/backend/publication/og";
-import { loadReport, type ReportKind } from "@aihot/backend/publication/reports";
-import { loadStoryDetail, resolveStory } from "@aihot/backend/publication/stories";
-import { ogEtag, renderOg, type OgCard } from "@aihot/backend/media/og";
-import { posterEtag, renderPoster, type Poster } from "@aihot/backend/media/poster";
-import { CARDS, ITEM_COPY, REPORTS, withSubject } from "@aihot/site";
-import { config } from "@aihot/backend/config";
+import { reportDateLabel } from "@baoxian-news/contracts/site";
+import { CATEGORY_LABELS } from "@baoxian-news/contracts/taxonomy";
+import { beijingDate } from "@baoxian-news/contracts/time";
+import { loadItemOgCard, loadItemShare } from "@baoxian-news/backend/publication/og";
+import { loadReport, type ReportKind } from "@baoxian-news/backend/publication/reports";
+import { loadStoryDetail, resolveStory } from "@baoxian-news/backend/publication/stories";
+import { ogEtag, renderOg, type OgCard } from "@baoxian-news/backend/media/og";
+import { posterEtag, renderPoster, type Poster } from "@baoxian-news/backend/media/poster";
+import { CARDS, ITEM_COPY, REPORTS, withSubject } from "@baoxian-news/site";
+import { config } from "@baoxian-news/backend/config";
 
 /** The pages' share cards: the site's texts. */
 const PAGES: Record<string, OgCard> = {

@@ -2,9 +2,9 @@
 // straight to the API, which sets the session cookie and sends the browser on.
 import { useLoaderData } from "react-router";
 import type { Route } from "./+types/admin-login";
-import { SITE } from "@aihot/site";
+import { SITE } from "@baoxian-news/site";
 import { apiGet } from "../lib/api.server";
-import { Wordmark } from "@aihot/site/brand/Logo.tsx";
+import { Wordmark } from "@baoxian-news/site/brand/Logo.tsx";
 import { buttonClass } from "../components/ui/Controls";
 
 const ERRORS: Record<string, string> = {

@@ -1,12 +1,12 @@
 {
-  "name": "@aihot/contracts",
+  "name": "@baoxian-news/contracts",
   "private": true,
   "type": "module",
   "exports": {
     "./*": "./src/*.ts"
   },
   "dependencies": {
-    "@aihot/industry": "*",
-    "@aihot/site": "*"
+    "@baoxian-news/industry": "*",
+    "@baoxian-news/site": "*"
   }
 }

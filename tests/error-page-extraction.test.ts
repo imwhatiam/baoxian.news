@@ -6,12 +6,12 @@ import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { after, before, test } from "node:test";
-import { config } from "@aihot/backend/config";
-import { closeDb, sql } from "@aihot/backend/db";
-import { extractArticleBody, extractFromUrl, readable } from "@aihot/backend/content/extract";
-import { upsertMaterial } from "@aihot/backend/content/materials";
-import { jinaRead } from "@aihot/backend/providers/jina";
-import { fetchDetail, fetchWebList } from "@aihot/backend/sources/web-list";
+import { config } from "@baoxian-news/backend/config";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { extractArticleBody, extractFromUrl, readable } from "@baoxian-news/backend/content/extract";
+import { upsertMaterial } from "@baoxian-news/backend/content/materials";
+import { jinaRead } from "@baoxian-news/backend/providers/jina";
+import { fetchDetail, fetchWebList } from "@baoxian-news/backend/sources/web-list";
 
 const T = tag();
 const sourceId = `error-page-${T}`;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { beijingIso } from "@aihot/contracts/time";
-import { dailyCheckAt, emptyChecksAfter, mpCheckDue, nextCheckAt } from "@aihot/backend/sources/mp";
+import { beijingIso } from "@baoxian-news/contracts/time";
+import { dailyCheckAt, emptyChecksAfter, mpCheckDue, nextCheckAt } from "@baoxian-news/backend/sources/mp";
 
 // Beijing is UTC+8. The daily read runs at the site's daily collection time (COLLECT_TIMES.daily,
 // 03:00 Beijing), so the anchor is 03:00 Beijing = 19:00 UTC the day before.

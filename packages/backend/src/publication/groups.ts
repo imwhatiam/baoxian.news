@@ -1,7 +1,7 @@
 // Duplicate reports of one news fact ("另外 N 家也报道了"). Members must pass the same visibility, pool
 // eligibility and parent-page filters as the card they open under.
-import type { CategoryKey, ChannelKey } from "@aihot/contracts/taxonomy";
-import type { GroupReportsResponse } from "@aihot/contracts/site";
+import type { CategoryKey, ChannelKey } from "@baoxian-news/contracts/taxonomy";
+import type { GroupReportsResponse } from "@baoxian-news/contracts/site";
 import { sql } from "../db.ts";
 import { categoryCondition, channelCondition, tagCondition } from "./items.ts";
 import { evidenceCondition, listedCondition } from "./scope.ts";

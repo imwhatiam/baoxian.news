@@ -3,7 +3,7 @@
 import './standalone.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { batchUser, describeReport, type ReportView } from '@aihot/backend/events/relate';
+import { batchUser, describeReport, type ReportView } from '@baoxian-news/backend/events/relate';
 
 test('grouping includes late evidence from both sides within its ten-thousand-character allowance',()=>{
   const sourceText='前'.repeat(6500)+'后半部的独立分析证据'+'后'.repeat(3500)+'上限之外';

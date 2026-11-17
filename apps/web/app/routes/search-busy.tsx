@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { RingMark } from "@aihot/site/brand/Logo.tsx";
+import { RingMark } from "@baoxian-news/site/brand/Logo.tsx";
 import { PhoneBar } from "../components/shell/PhoneBar";
 import type { Screen } from "../components/shell/screens";
 import { titled } from "../lib/seo";

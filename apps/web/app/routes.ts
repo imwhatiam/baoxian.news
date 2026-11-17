@@ -1,6 +1,6 @@
 import { type RouteConfig, type RouteConfigEntry, index, layout, route } from "@react-router/dev/routes";
-import type { ModulePage } from "@aihot/contracts/modules";
-import { MODULES } from "@aihot/site/modules";
+import type { ModulePage } from "@baoxian-news/contracts/modules";
+import { MODULES } from "@baoxian-news/site/modules";
 
 /** A module's route module, from the app directory. */
 const file = (module: string, path: string) => `../../../modules/${module}/${path}`;

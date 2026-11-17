@@ -15,7 +15,7 @@
         "allowUrlPrefixes": [
           "https://www.cisf.cn/cisf/"
         ],
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -39,7 +39,7 @@
         "linkSelector": "a",
         "titleSelector": "a",
         "publishedAtSelector": "p",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -68,7 +68,7 @@
         "allowUrlPrefixes": [
           "https://finance.ce.cn/insurance1/"
         ],
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -102,7 +102,7 @@
       "config": {
         "url": "https://www.nfra.gov.cn/cn/static/data/DocInfo/SelectItemAndDocByItemPId/data_itemId=914,pageSize=10.json",
         "mode": "json_api",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 8
         },
         "render": true,
@@ -135,7 +135,7 @@
       "config": {
         "url": "https://www.nfra.gov.cn/cn/static/data/DocInfo/SelectItemAndDocByItemPId/data_itemId=914,pageSize=10.json",
         "mode": "json_api",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 8
         },
         "render": true,
@@ -168,7 +168,7 @@
       "config": {
         "url": "https://www.nfra.gov.cn/cn/static/data/DocInfo/SelectItemAndDocByItemPId/data_itemId=923,pageSize=10.json",
         "mode": "json_api",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 8
         },
         "render": true,
@@ -209,7 +209,7 @@
         "allowUrlPrefixes": [
           "http://www.pbc.gov.cn/goutongjiaoliu/"
         ],
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -238,7 +238,7 @@
         "allowUrlPrefixes": [
           "https://jrs.mof.gov.cn/gongzuodongtai/"
         ],
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -678,7 +678,7 @@
       "config": {
         "feedUrl": "https://www.insurancejournal.com/rss/news",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -699,7 +699,7 @@
       "config": {
         "feedUrl": "https://www.claimsjournal.com/rss/news",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -720,7 +720,7 @@
       "config": {
         "feedUrl": "https://www.businessinsurance.com/rss",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -741,7 +741,7 @@
       "config": {
         "feedUrl": "https://www.carriermanagement.com/feed/",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -762,7 +762,7 @@
       "config": {
         "feedUrl": "https://riskandinsurance.com/feed/",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -783,7 +783,7 @@
       "config": {
         "feedUrl": "https://www.bankofengland.co.uk/rss/prudential-regulation-publications",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -804,7 +804,7 @@
       "config": {
         "feedUrl": "https://www.finma.ch/en/rss/news/",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -825,7 +825,7 @@
       "config": {
         "feedUrl": "https://www.eiopa.europa.eu/feed/68/rss_en",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -846,7 +846,7 @@
       "config": {
         "feedUrl": "https://www.the-digital-insurer.com/feed",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -867,7 +867,7 @@
       "config": {
         "feedUrl": "https://coverager.com/feed/",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -890,7 +890,7 @@
       "config": {
         "feedUrl": "https://www.dig-in.com/feed?rss=true",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -911,7 +911,7 @@
       "config": {
         "feedUrl": "https://insurtechny.com/feed",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -932,7 +932,7 @@
       "config": {
         "feedUrl": "https://socotra.com/feed",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -953,7 +953,7 @@
       "config": {
         "feedUrl": "https://www.commercialriskonline.com/feed/",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -974,7 +974,7 @@
       "config": {
         "feedUrl": "https://theactuarymagazine.org/feed/",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -995,7 +995,7 @@
       "config": {
         "feedUrl": "https://soapodcasts.libsyn.com/rssfeed",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -1017,7 +1017,7 @@
       "config": {
         "feedUrl": "https://getpluggedin.libsyn.com/rss",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -1039,7 +1039,7 @@
       "config": {
         "feedUrl": "https://aon.mediaroom.com/news-releases?pagetemplate=rss",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -1060,7 +1060,7 @@
       "config": {
         "feedUrl": "https://aon.mediaroom.com/news-releases?category=819&pagetemplate=rss",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -1081,7 +1081,7 @@
       "config": {
         "feedUrl": "https://aon.mediaroom.com/news-releases?category=829&pagetemplate=rss",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -1102,7 +1102,7 @@
       "config": {
         "feedUrl": "https://aon.mediaroom.com/news-releases?category=825&pagetemplate=rss",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },
@@ -1123,7 +1123,7 @@
       "config": {
         "feedUrl": "https://insuranceblog.accenture.com/feed",
         "acceptLanguage": "en-US,en;q=0.9",
-        "_aihot": {
+        "_baoxian_news": {
           "initialBackfillLimit": 5
         }
       },

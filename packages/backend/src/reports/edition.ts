@@ -6,8 +6,8 @@
 // carried even when none of its reports was selected; entries rank by importance (score, the day's
 // independent participants, first-hand), and the first one leads. Sections are the industry pack's
 // (industry/taxonomy.ts CATEGORIES).
-import { addDays } from "@aihot/contracts/time";
-import { CATEGORIES } from "@aihot/industry/taxonomy";
+import { addDays } from "@baoxian-news/contracts/time";
+import { CATEGORIES, CATEGORY_LIST_ONLY } from "@baoxian-news/industry/taxonomy";
 import { sql } from "../db.ts";
 import { currentSignals } from "../events/hot.ts";
 import { pickRepresentative, representativePriority, REPRESENTATIVE_COLUMNS, type RepresentativeIdentity } from "../publication/representative.ts";
@@ -112,6 +112,7 @@ export async function periodReports(start: Date, end: Date): Promise<ReportRow[]
       LEFT JOIN stories st ON st.id = f.story_id
       -- Attribute each item by the later of arrival and release; either range can use its index.
       WHERE p.visibility = 'public' AND p.selected AND NOT p.backfill
+        AND coalesce(p.category, '') <> ALL(${CATEGORY_LIST_ONLY}::text[])
         AND (
           (p.visible_after <= p.timeline_at AND p.timeline_at >= ${start} AND p.timeline_at < ${end})
           OR (p.visible_after > p.timeline_at AND p.visible_after >= ${start} AND p.visible_after < ${end})

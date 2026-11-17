@@ -1,6 +1,6 @@
 // Operator settings: the about page's QR code (replaced without a release) and per-service request
 // budgets (the circuit breaker paid calls check before sending).
-import type { AdminBudget, AdminSettings, BeforeJson } from "@aihot/contracts/admin";
+import type { AdminBudget, AdminSettings, BeforeJson } from "@baoxian-news/contracts/admin";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";

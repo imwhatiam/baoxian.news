@@ -12,7 +12,7 @@ test("API startup is quiet and an unexpected error retains the request, stack an
     import { buildApp } from ${JSON.stringify(new URL("../apps/api/src/app.ts", import.meta.url).href)};
     import { Readable } from "node:stream";
     import { siteHandler } from ${JSON.stringify(new URL("../apps/api/src/routes/site.ts", import.meta.url).href)};
-    import { SearchBusyError } from "@aihot/backend/publication/pool";
+    import { SearchBusyError } from "@baoxian-news/backend/publication/pool";
     const app = await buildApp();
     app.get("/api/log-check", async () => { throw new DOMException("upstream timed out", "TimeoutError"); });
     app.get("/api/logged", async (req, reply) => {
@@ -45,7 +45,7 @@ test("API startup is quiet and an unexpected error retains the request, stack an
   `;
   const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
     cwd: new URL("..", import.meta.url), encoding: "utf8", timeout: 15000,
-    env: { ...process.env, DATABASE_URL: "postgres://127.0.0.1/aihot_logging_test", AIHOT_CREDENTIALS_DIR: "/nonexistent-test-credentials", LOG_LEVEL: "info" },
+    env: { ...process.env, DATABASE_URL: "postgres://127.0.0.1/baoxian_news_logging_test", BAOXIAN_NEWS_CREDENTIALS_DIR: "/nonexistent-test-credentials", LOG_LEVEL: "info" },
   });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stderr, "");

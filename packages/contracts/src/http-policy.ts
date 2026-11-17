@@ -1,8 +1,8 @@
 // Outward HTTP behaviour, defined once: CORS, the public interface version, redirects and which process
 // owns a path, the engine's and then those of the site's modules. The API server and the web server both
 // read this module.
-import { ABOUT, SITE } from "@aihot/site";
-import { MODULES } from "@aihot/site/modules";
+import { ABOUT, SITE } from "@baoxian-news/site";
+import { MODULES } from "@baoxian-news/site/modules";
 
 export const NO_STORE = "no-store";
 

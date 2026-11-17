@@ -10,12 +10,12 @@
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { fillScheduledPublications, upsertMaterial } from "@aihot/backend/content/materials";
-import { getBoss, stopBoss } from "@aihot/backend/jobs/queue";
-import { collectFindings, dismissedFollowUps, dismissFollowUp, restoreFollowUp, sendDigest } from "@aihot/backend/operations/alerts";
-import { sourceHealthWeekly } from "@aihot/backend/operations/reports";
-import { sourceHealth, rhythmText, RHYTHM_WINDOW_DAYS } from "@aihot/backend/sources/health";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { fillScheduledPublications, upsertMaterial } from "@baoxian-news/backend/content/materials";
+import { getBoss, stopBoss } from "@baoxian-news/backend/jobs/queue";
+import { collectFindings, dismissedFollowUps, dismissFollowUp, restoreFollowUp, sendDigest } from "@baoxian-news/backend/operations/alerts";
+import { sourceHealthWeekly } from "@baoxian-news/backend/operations/reports";
+import { sourceHealth, rhythmText, RHYTHM_WINDOW_DAYS } from "@baoxian-news/backend/sources/health";
 
 const T = tag();
 const now = Date.now();

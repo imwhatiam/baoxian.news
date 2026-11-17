@@ -5,13 +5,13 @@
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { sql, closeDb } from "@aihot/backend/db";
-import { overrideFields } from "@aihot/backend/admin/content";
-import { upsertMaterial } from "@aihot/backend/content/materials";
-import { publishArticle } from "@aihot/backend/publication/publish";
-import { dailyMetrics } from "@aihot/backend/reports/compose";
-import type { EditionEntry } from "@aihot/backend/reports/edition";
-import { QUEUES, getBoss, stopBoss } from "@aihot/backend/jobs/queue";
+import { sql, closeDb } from "@baoxian-news/backend/db";
+import { overrideFields } from "@baoxian-news/backend/admin/content";
+import { upsertMaterial } from "@baoxian-news/backend/content/materials";
+import { publishArticle } from "@baoxian-news/backend/publication/publish";
+import { dailyMetrics } from "@baoxian-news/backend/reports/compose";
+import type { EditionEntry } from "@baoxian-news/backend/reports/edition";
+import { QUEUES, getBoss, stopBoss } from "@baoxian-news/backend/jobs/queue";
 
 after(async () => { await stopBoss(); await closeDb(); });
 

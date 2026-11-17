@@ -4,8 +4,8 @@
 import { stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { sha256 } from "@aihot/backend/lib/ids";
+import { closeDb, sql } from "@baoxian-news/backend/db";
+import { sha256 } from "@baoxian-news/backend/lib/ids";
 
 const T = `storage-${tag()}`;
 const replacement = [1, 0, 0, 0];
@@ -15,7 +15,7 @@ process.env.EMBEDDING_MODEL = T;
 process.env.EMBEDDING_DIMS = "0";
 process.env.EMBEDDING_API_KEY = "test-key";
 process.env.EMBEDDING_BASE_URL = `${provider.url}/v1`;
-const { ensureEmbeddings } = await import("@aihot/backend/providers/embeddings");
+const { ensureEmbeddings } = await import("@baoxian-news/backend/providers/embeddings");
 after(async () => { await provider.close(); await closeDb(); });
 
 const bits = (vector: number[]) => Buffer.from(Float32Array.from(vector).buffer);
